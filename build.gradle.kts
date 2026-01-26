@@ -17,7 +17,7 @@ allprojects {
 }
 
 subprojects {
-    if (name == "infrastructure" || name == "web-app") {
+    if (name == "infrastructure" || name == "web-app" || name == "services") {
         return@subprojects
     }
 
@@ -38,7 +38,6 @@ subprojects {
     }
 
     dependencies {
-        "implementation"("org.springframework.boot:spring-boot-starter-web")
         "implementation"("org.springframework.boot:spring-boot-starter-actuator")
 
         "compileOnly"("org.projectlombok:lombok")
@@ -49,5 +48,17 @@ subprojects {
 
     tasks.withType<Test> {
         useJUnitPlatform()
+    }
+
+    tasks.named<org.springframework.boot.gradle.tasks.bundling.BootBuildImage>("bootBuildImage") {
+        builder.set("paketobuildpacks/builder-jammy-base:latest")
+
+        cleanCache.set(true)
+
+        verboseLogging.set(true)
+    }
+
+    tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
+        enabled = true
     }
 }

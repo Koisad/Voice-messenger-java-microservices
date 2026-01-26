@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  gateway-service:
+    container_name: gateway-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_PATH: services/gateway-service
+    ports:
+      - "8080:8080"
+    environment:
+      - AUTH_URI=http://auth-service:8081
+      - CHAT_URI=http://chat-service:8082
+      - SIGNALING_URI=ws://signaling-service:8083
+      - AI_URI=http://ai-service:8084
+      - ANALYTICS_URI=http://analytics-service:8085
+    networks:
+      - app-net
+
+  auth-service:
+    container_name: auth-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_PATH: services/auth-service
+    environment:
+      - DB_HOST=3.71.11.3
+      - DB_PORT=8542
+      - DB_USER=postgres
+      - DB_PASS=postgres
+    networks:
+      - app-net
+
+  chat-service:
+    container_name: chat-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_PATH: services/chat-service
+    environment:
+      - DB_HOST=3.71.11.3
+      - MONGO_PORT=8543
+      - MONGO_USER=admin
+      - MONGO_PASS=password
+    networks:
+      - app-net
+
+  signaling-service:
+    container_name: signaling-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_PATH: services/signaling-service
+    networks:
+      - app-net
+
+  ai-service:
+    container_name: ai-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_PATH: services/ai-service
+    environment:
+      - DB_HOST=3.71.11.3
+      - MONGO_PORT=8543
+      - MONGO_USER=admin
+      - MONGO_PASS=password
+    networks:
+      - app-net
+
+  analytics-service:
+    container_name: analytics-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_PATH: services/analytics-service
+    environment:
+      - DB_HOST=3.71.11.3
+      - MONGO_PORT=8544
+      - MONGO_USER=admin
+      - MONGO_PASS=password
+    networks:
+      - app-net
+
+networks:
+  app-net:
+    driver: bridge

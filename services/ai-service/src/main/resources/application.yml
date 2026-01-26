@@ -1,0 +1,8 @@
+server:
+  port: 8084
+spring:
+  application:
+    name: ai-service
+  data:
+    mongodb:
+      uri: mongodb://admin:password@3.71.11.3:8543/chat_db?authSource=admin

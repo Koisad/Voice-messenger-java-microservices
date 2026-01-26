@@ -1,0 +1,8 @@
+server:
+  port: 8085
+spring:
+  application:
+    name: analytics-service
+  data:
+    mongodb:
+      uri: mongodb://admin:password@3.71.11.3:8544/chat_db?authSource=admin
