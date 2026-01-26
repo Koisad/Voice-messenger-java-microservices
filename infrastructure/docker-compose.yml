@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # PostgreSQL (for Auth Service)
+  auth-db:
+    image: postgres:16-alpine
+    container_name: auth-db
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=auth_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data
+
+  #  MongoDB (for Chat Service and AI Service)
+  chat-ai-db:
+    image: mongo:6.0
+    container_name: chat-ai-db
+    restart: always
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    ports:
+      - "27017:27017"
+    volumes:
+      - chat_ai_db_data:/data/db
+
+  # MongoDB (for Analytics Service)
+  analytics-db:
+    image: mongo:6.0
+    container_name: analytics-db
+    restart: always
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    ports:
+      - "27018:27017"
+    volumes:
+      - analytics_db_data:/data/db
+
+volumes:
+  auth_db_data:
+  chat_ai_db_data:
+  analytics_db_data:
