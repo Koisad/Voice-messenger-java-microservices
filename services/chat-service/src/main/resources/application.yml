@@ -6,3 +6,10 @@ spring:
   data:
     mongodb:
       uri: mongodb://admin:password@3.71.11.3:8543/chat_db?authSource=admin
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://keycloak:9090/realms/voice-messenger
+          jwk-set-uri: http://keycloak:9090/realms/voice-messenger/protocol/openid-connect/certs
