@@ -1,7 +1,7 @@
 rootProject.name = "Voice-messenger"
 
 include("services:gateway-service")
-include("services:auth-service")
+//include("services:auth-service")
 include("services:analytics-service")
 //include("services:decision-service")
 include("services:signaling-service")
