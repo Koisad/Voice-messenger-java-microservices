@@ -1,5 +1,13 @@
 server:
   port: 8083
+
 spring:
   application:
     name: signaling-service
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://keycloak:9090/realms/voice-messenger
+          jwk-set-uri: http://keycloak:9090/realms/voice-messenger/protocol/openid-connect/certs
