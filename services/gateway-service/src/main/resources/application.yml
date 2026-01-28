@@ -33,9 +33,9 @@ spring:
           predicates:
             - Path=/api/chat/**
         - id: signaling-route
-          uri: ws://signaling-service:8080
+          uri: ws://signaling-service:8083
           predicates:
-            - Path=/ws/**
+            - Path=/ws/signal**
         - id: ai-route
           uri: http://ai-service:8080
           predicates:
