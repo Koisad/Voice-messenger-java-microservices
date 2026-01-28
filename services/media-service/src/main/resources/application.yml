@@ -1,0 +1,16 @@
+server:
+  port: 8888
+
+spring:
+  application:
+    name: media-service
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://keycloak:9090/realms/voice-messenger
+          jwk-set-uri: http://keycloak:9090/realms/voice-messenger/protocol/openid-connect/certs
+
+livekit:
+  api-key: ${LIVEKIT_API_KEY}
+  api-secret: ${LIVEKIT_API_SECRET}

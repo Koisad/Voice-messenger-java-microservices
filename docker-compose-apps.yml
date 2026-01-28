@@ -9,11 +9,12 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - AUTH_URI=http://auth-service:8081
       - CHAT_URI=http://chat-service:8082
       - SIGNALING_URI=ws://signaling-service:8083
       - AI_URI=http://ai-service:8084
       - ANALYTICS_URI=http://analytics-service:8085
+      - MEDIA_URI=http://media-service:8888
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
     networks:
       - app-net
 
@@ -90,6 +91,36 @@ services:
       - MONGO_PORT=8544
       - MONGO_USER=admin
       - MONGO_PASS=password
+    networks:
+      - app-net
+
+  media-service:
+    container_name: media-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_PATH: services/media-service
+    environment:
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
+    networks:
+      - app-net
+
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: voice-livekit-1
+    command: --config /livekit.yaml
+    volumes:
+      - "./livekit.yaml:/livekit.yaml"
+    environment:
+      - "LIVEKIT_KEYS=${LIVEKIT_API_KEY}: ${LIVEKIT_API_SECRET}"
+      - LIVEKIT_REDIS_ADDRESS=${INFRA_HOST}:${REDIS_PORT}
+      - LIVEKIT_REDIS_PASSWORD=${REDIS_PASSWORD}
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "50000-50050:50000-50050/udp"
     networks:
       - app-net
 
