@@ -2,7 +2,7 @@ services:
   web-app:
     container_name: frontend-service
     build:
-      context: ./frontend
+      context: ./web-app
     ports:
       - "127.0.0.1:3000:80"
     networks:
