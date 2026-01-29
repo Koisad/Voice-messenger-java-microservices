@@ -42,6 +42,21 @@ services:
     networks:
       - voice-network
 
+  room-db:
+    image: mongo:6.0
+    container_name: room-db
+    restart: always
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+    ports:
+      - "27019:27017"
+    volumes:
+      - room_db_data:/data/db
+    networks:
+      - voice-network
+
+
   redis:
     image: redis:7-alpine
     container_name: infra-redis
@@ -58,6 +73,7 @@ volumes:
   auth_db_data:
   chat_ai_db_data:
   analytics_db_data:
+  room_db:
   redis_data:
 
 networks:
