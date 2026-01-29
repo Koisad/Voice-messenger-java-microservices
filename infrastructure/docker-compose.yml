@@ -1,45 +1,66 @@
 services:
-  # PostgreSQL (for Auth Service)
   auth-db:
     image: postgres:16-alpine
     container_name: auth-db
     restart: always
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=auth_db
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
       - auth_db_data:/var/lib/postgresql/data
+    networks:
+      - voice-network
 
-  #  MongoDB (for Chat Service and AI Service)
   chat-ai-db:
     image: mongo:6.0
     container_name: chat-ai-db
     restart: always
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=password
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
     ports:
       - "27017:27017"
     volumes:
       - chat_ai_db_data:/data/db
+    networks:
+      - voice-network
 
-  # MongoDB (for Analytics Service)
   analytics-db:
     image: mongo:6.0
     container_name: analytics-db
     restart: always
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=password
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
     ports:
       - "27018:27017"
     volumes:
       - analytics_db_data:/data/db
+    networks:
+      - voice-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: infra-redis
+    restart: always
+    command: ["redis-server", "--bind", "0.0.0.0", "--requirepass", "${REDIS_PASSWORD}", "--appendonly", "no"]
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - voice-network
 
 volumes:
   auth_db_data:
   chat_ai_db_data:
   analytics_db_data:
+  redis_data:
+
+networks:
+  voice-network:
+    name: voice-network
+    driver: bridge
