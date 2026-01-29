@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from 'react-oidc-context';
 import { LiveKitRoom, VideoConference } from '@livekit/components-react';
 import '@livekit/components-styles';
 
-// Adres Twojego API Gateway
 const API_URL = 'https://api.voicemessenger.mywire.org';
 
 export default function App() {
@@ -13,7 +12,6 @@ export default function App() {
     const [isJoining, setIsJoining] = useState(false);
     const [roomName, setRoomName] = useState('pokoj-glowny');
 
-    // Funkcja pobierająca token LiveKit z Twojego backendu
     const fetchLiveKitToken = async () => {
         if (!auth.user?.access_token) return;
         setIsJoining(true);
@@ -22,7 +20,7 @@ export default function App() {
             const response = await fetch(`${API_URL}/api/media/join-channel?channelId=${roomName}`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${auth.user.access_token}`, // Automatycznie bierze token z Keycloak
+                    'Authorization': `Bearer ${auth.user.access_token}`,
                 },
             });
 
@@ -38,12 +36,10 @@ export default function App() {
         }
     };
 
-    // 1. Ekran Ładowania (gdy Keycloak przetwarza logowanie)
     if (auth.isLoading) {
         return <div className="center-screen">🔄 Łączenie z systemem autoryzacji...</div>;
     }
 
-    // 2. Ekran Logowania (dla niezalogowanych)
     if (!auth.isAuthenticated) {
         return (
             <div className="center-screen">
@@ -56,7 +52,6 @@ export default function App() {
         );
     }
 
-    // 3. Ekran Pokoju (Zalogowany, ale jeszcze nie połączony z LiveKit)
     if (!liveKitToken) {
         return (
             <div className="center-screen">
@@ -87,7 +82,6 @@ export default function App() {
         );
     }
 
-    // 4. Ekran Rozmowy (LiveKit)
     return (
         <LiveKitRoom
             video={true}
@@ -97,7 +91,7 @@ export default function App() {
             connect={true}
             data-lk-theme="default"
             style={{ height: '100vh' }}
-            onDisconnected={() => setLiveKitToken('')} // Po rozłączeniu wróć do menu
+            onDisconnected={() => setLiveKitToken('')}
         >
             <VideoConference />
         </LiveKitRoom>
