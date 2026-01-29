@@ -36,11 +36,11 @@ spring:
           predicates:
             - Path=/ws/signal/**
         - id: ai-route
-          uri: http://ai-service:8080
+          uri: http://ai-service:8084
           predicates:
             - Path=/api/ai/**
         - id: analytics-route
-          uri: http://analytics-service:8080
+          uri: http://analytics-service:8085
           predicates:
             - Path=/api/analytics/**
         - id: media-api-route

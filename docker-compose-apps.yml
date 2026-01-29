@@ -1,6 +1,13 @@
-version: '3.8'
-
 services:
+  web-app:
+    container_name: frontend-service
+    build:
+      context: ./frontend
+    ports:
+      - "127.0.0.1:3000:80"
+    networks:
+      - app-net
+
   gateway-service:
     container_name: gateway-service
     build:
@@ -9,13 +16,13 @@ services:
       args:
         SERVICE_PATH: services/gateway-service
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     environment:
-      - AUTH_URI=http://auth-service:8081
       - CHAT_URI=http://chat-service:8082
       - SIGNALING_URI=ws://signaling-service:8083
       - AI_URI=http://ai-service:8084
       - ANALYTICS_URI=http://analytics-service:8085
+      - MEDIA_URI=http://media-service:8888
       - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
     networks:
       - app-net
@@ -33,11 +40,12 @@ services:
       - KC_DB_PASSWORD=${POSTGRES_PASSWORD}
       - KC_HOSTNAME_STRICT=false
       - KC_HTTP_ENABLED=true
+      - KC_PROXY_HEADERS=xforwarded
       - KC_HTTP_PORT=9090
       - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN}
       - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
     ports:
-      - "9090:9090"
+      - "127.0.0.1:9090:9090"
     networks:
       - app-net
 
@@ -96,18 +104,34 @@ services:
     networks:
       - app-net
 
+  media-service:
+    container_name: media-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_PATH: services/media-service
+    environment:
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
+      - LIVEKIT_EXTERNAL_URL=wss://livekit.voicemessenger.mywire.org
+    networks:
+      - app-net
+
   livekit:
     image: livekit/livekit-server:latest
     container_name: voice-livekit-1
     command: --config /livekit.yaml
-    ports:
-      - "7880:7880"
-      - "50000-50010:50000-50010/udp"
     volumes:
-      - ./livekit.yaml:/livekit.yaml
+      - "./config/livekit.yaml:/livekit.yaml"
     environment:
-      - LIVEKIT_KEYS=${LIVEKIT_API_KEY}:${LIVEKIT_API_SECRET}
-      - LIVEKIT_REDIS_ADDRESS=redis://:${REDIS_PASSWORD}@${INFRA_HOST}:${REDIS_PORT}
+      - "LIVEKIT_KEYS=${LIVEKIT_API_KEY}: ${LIVEKIT_API_SECRET}"
+      - LIVEKIT_REDIS_ADDRESS=${INFRA_HOST}:${REDIS_PORT}
+      - LIVEKIT_REDIS_PASSWORD=${REDIS_PASSWORD}
+    ports:
+      - "127.0.0.1:7880:7880"
+      - "7881:7881"
+      - "50000-50050:50000-50050/udp"
     networks:
       - app-net
 
