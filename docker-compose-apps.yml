@@ -24,6 +24,8 @@ services:
       - ANALYTICS_URI=http://analytics-service:8085
       - MEDIA_URI=http://media-service:8888
       - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=https://auth.voicemessenger.mywire.org/realms/voice-messenger
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://keycloak:9090/realms/voice-messenger/protocol/openid-connect/certs
     networks:
       - app-net
 
@@ -115,6 +117,8 @@ services:
       - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
       - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
       - LIVEKIT_EXTERNAL_URL=wss://livekit.voicemessenger.mywire.org
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=https://auth.voicemessenger.mywire.org/realms/voice-messenger
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://keycloak:9090/realms/voice-messenger/protocol/openid-connect/certs
     networks:
       - app-net
 
@@ -128,6 +132,8 @@ services:
       - "LIVEKIT_KEYS=${LIVEKIT_API_KEY}: ${LIVEKIT_API_SECRET}"
       - LIVEKIT_REDIS_ADDRESS=${INFRA_HOST}:${REDIS_PORT}
       - LIVEKIT_REDIS_PASSWORD=${REDIS_PASSWORD}
+      - LIVEKIT_RTC_NAT_1_TO_1_IPS=3.71.11.3
+      - LIVEKIT_RTC_USE_EXTERNAL_IP=false
     ports:
       - "127.0.0.1:7880:7880"
       - "7881:7881"
