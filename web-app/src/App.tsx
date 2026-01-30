@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from 'react-oidc-context';
 import { LiveKitRoom, VideoConference } from '@livekit/components-react';
 import '@livekit/components-styles';
-import './App.css'; // Zakładam, że style przeniesiemy tutaj lub do index.css
+import './index.css'; // Zakładam, że style przeniesiemy tutaj lub do index.css
 
 // Typy danych z Backendu
 interface Channel {
