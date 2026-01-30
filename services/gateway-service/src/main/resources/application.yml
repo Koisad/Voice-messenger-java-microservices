@@ -28,23 +28,27 @@ spring:
         - TokenRelay
       routes:
         - id: chat-route
-          uri: http://chat-service:8082
+          uri: ${CHAT_URI}
           predicates:
             - Path=/api/chat/**
+        - id: room-route
+          uri: ${ROOM_URI}
+          predicates:
+            - Path=/api/servers/**
         - id: signaling-route
-          uri: ws://signaling-service:8083
+          uri: ${SIGNALING_URI}
           predicates:
             - Path=/ws/signal/**
         - id: ai-route
-          uri: http://ai-service:8084
+          uri: ${AI_URI}
           predicates:
             - Path=/api/ai/**
         - id: analytics-route
-          uri: http://analytics-service:8085
+          uri: ${ANALYTICS_URI}
           predicates:
             - Path=/api/analytics/**
         - id: media-api-route
-          uri: http://media-service:8888
+          uri: ${MEDIA_URI}
           predicates:
             - Path=/api/media/**
       globalcors:

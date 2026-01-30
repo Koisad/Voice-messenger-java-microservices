@@ -1,36 +1,33 @@
 package com.voicecommunicator.media.controller;
 
-import com.voicecommunicator.media.service.LiveKitTokenService;
+import com.voicecommunicator.media.dto.JoinChannelRequestDTO;
+import com.voicecommunicator.media.dto.LiveKitTokenResponseDTO;
+import com.voicecommunicator.media.service.LiveKitService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/media")
 @RequiredArgsConstructor
 public class MediaController {
 
-    private final LiveKitTokenService tokenService;
+    private final LiveKitService liveKitService;
 
-    @Value("${livekit.external-url:ws://localhost:7880}")
-    private String liveKitUrl;
-
-    @PostMapping("/join-channel")
-    public ResponseEntity<Map<String, String>> joinChannel(
-            @RequestParam String channelId,
+    @PostMapping("/token")
+    public ResponseEntity<LiveKitTokenResponseDTO> getToken(
+            @RequestBody JoinChannelRequestDTO request,
             @AuthenticationPrincipal Jwt jwt
     ) {
         String userId = jwt.getSubject();
-        String liveKitToken = tokenService.createToken(userId, channelId);
+        String channelId = request.getChannelId();
 
-        return ResponseEntity.ok(Map.of(
-                "token", liveKitToken,
-                "url", liveKitUrl
-        ));
+        String token = liveKitService.generateToken(userId, channelId);
+
+        String url = liveKitService.getLiveKitUrl();
+
+        return ResponseEntity.ok(new LiveKitTokenResponseDTO(token, url));
     }
 }

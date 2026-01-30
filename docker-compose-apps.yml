@@ -22,6 +22,7 @@ services:
       - SIGNALING_URI=ws://signaling-service:8083
       - AI_URI=http://ai-service:8084
       - ANALYTICS_URI=http://analytics-service:8085
+      - ROOM_URI=http://room-service:8086
       - MEDIA_URI=http://media-service:8888
       - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=https://auth.voicemessenger.mywire.org/realms/voice-messenger
@@ -63,6 +64,25 @@ services:
       - MONGO_PORT=${MONGO_PORT_CHAT}
       - MONGO_USER=${MONGO_ROOT_USER}
       - MONGO_PASS=${MONGO_ROOT_PASSWORD}
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=https://auth.voicemessenger.mywire.org/realms/voice-messenger
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://keycloak:9090/realms/voice-messenger/protocol/openid-connect/certs
+    networks:
+      - app-net
+
+  room-service:
+    container_name: room-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_PATH: services/room-service
+    environment:
+      - DB_HOST=${INFRA_HOST}
+      - MONGO_PORT=${MONGO_PORT_ROOMS}
+      - MONGO_USER=${MONGO_ROOT_USER}
+      - MONGO_PASS=${MONGO_ROOT_PASSWORD}
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=https://auth.voicemessenger.mywire.org/realms/voice-messenger
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://keycloak:9090/realms/voice-messenger/protocol/openid-connect/certs
     networks:
       - app-net
 
@@ -88,6 +108,8 @@ services:
       - MONGO_PORT=${MONGO_PORT_CHAT}
       - MONGO_USER=${MONGO_ROOT_USER}
       - MONGO_PASS=${MONGO_ROOT_PASSWORD}
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=https://auth.voicemessenger.mywire.org/realms/voice-messenger
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://keycloak:9090/realms/voice-messenger/protocol/openid-connect/certs
     networks:
       - app-net
 
@@ -103,6 +125,8 @@ services:
       - MONGO_PORT=${MONGO_PORT_ANALYTICS}
       - MONGO_USER=${MONGO_ROOT_USER}
       - MONGO_PASS=${MONGO_ROOT_PASSWORD}
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=https://auth.voicemessenger.mywire.org/realms/voice-messenger
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://keycloak:9090/realms/voice-messenger/protocol/openid-connect/certs
     networks:
       - app-net
 
@@ -116,7 +140,7 @@ services:
     environment:
       - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
       - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
-      - LIVEKIT_EXTERNAL_URL=wss://livekit.voicemessenger.mywire.org
+      - LIVEKIT_EXTERNAL_URL=${LIVEKIT_EXTERNAL_URL}
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=https://auth.voicemessenger.mywire.org/realms/voice-messenger
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://keycloak:9090/realms/voice-messenger/protocol/openid-connect/certs
     networks:

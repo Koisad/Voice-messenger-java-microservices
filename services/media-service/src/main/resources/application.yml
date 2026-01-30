@@ -14,3 +14,4 @@ spring:
 livekit:
   api-key: ${LIVEKIT_API_KEY}
   api-secret: ${LIVEKIT_API_SECRET}
+  url: ${LIVEKIT_EXTERNAL_URL}

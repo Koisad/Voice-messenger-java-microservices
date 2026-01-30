@@ -1,8 +1,6 @@
 package com.voicecommunicator.chat.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.LocalDateTime;
@@ -10,6 +8,7 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @Document(collection = "messages")
 public class Message {
 
@@ -17,11 +16,10 @@ public class Message {
     private String id;
     private String senderId;
     private String content;
+
+    private String serverId;
+    private String channelId;
+
     private LocalDateTime timestamp;
 
-    public Message(String senderId, String content) {
-        this.senderId = senderId;
-        this.content = content;
-        this.timestamp = LocalDateTime.now();
-    }
 }

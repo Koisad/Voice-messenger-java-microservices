@@ -1,49 +1,86 @@
 :root {
-    font-family: Inter, system-ui, sans-serif;
-    color-scheme: dark;
-    background-color: #111;
-    color: #fff;
+  /* Colors */
+  --bg-primary: #313338;
+  --bg-secondary: #2b2d31;
+  --bg-tertiary: #1e1f22;
+  --bg-accent: #3f4147;
+  
+  --text-primary: #f2f3f5;
+  --text-secondary: #b9bbbe;
+  --text-muted: #949ba4;
+  
+  --brand: #5865F2;
+  --brand-hover: #4752c4;
+  
+  --danger: #ed4245;
+  --success: #3ba55c;
+  
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  
+  /* Utils */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-full: 50%; /* For server icons */
+  
+  --shadow-sm: 0 1px 0 rgba(4,4,5,0.2),0 1.5px 0 rgba(6,6,7,0.05),0 2px 0 rgba(4,4,5,0.05);
+  --shadow-md: 0 4px 4px rgba(0,0,0,0.16);
 }
 
-body, html, #root {
-    margin: 0;
-    height: 100%;
-    width: 100%;
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-.center-screen {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
-    gap: 20px;
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
 }
+
+#root {
+  height: 100%;
+  width: 100%;
+  display: flex;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background-color: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+/* Utilities */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.w-full { width: 100%; }
+.h-full { height: 100%; }
 
 button {
-    border-radius: 8px;
-    border: none;
-    padding: 0.8em 1.5em;
-    font-size: 1em;
-    font-weight: 600;
-    background-color: #646cff;
-    color: white;
-    cursor: pointer;
-    transition: 0.2s;
-}
-
-button:hover {
-    background-color: #535bf2;
-}
-
-button:disabled {
-    background-color: #333;
-    cursor: not-allowed;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
 }
 
 input {
-    background: #222;
-    border: 1px solid #444;
-    color: white;
-    border-radius: 4px;
+  border: none;
+  outline: none;
+  font-family: inherit;
 }
