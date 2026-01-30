@@ -15,7 +15,10 @@ export const getUserToken = (): string | null => {
 export const authConfig = {
     authority: "https://auth.voicemessenger.mywire.org/realms/voice-messenger",
     client_id: "gateway-client",
-    redirect_uri: window.location.origin + '/', // Add trailing slash just in case
+    // CRITICAL: Keycloak often whitelist exact URLs. 
+    // window.location.origin gives "https://domain.com" without trailing slash.
+    // If the browser adds a slash, we might need to handle it, but for now we MUST match Keycloak's whitelist.
+    redirect_uri: window.location.origin,
     response_type: "code",
     scope: "openid profile email",
 };
