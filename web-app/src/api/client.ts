@@ -1,11 +1,13 @@
 import type { Server, Message, CreateServerRequest, SendMessageRequest } from '../types';
+import { getUserToken } from './config';
 
 const BASE_URL = '/api';
 
-// No Authorization header needed, relying on Gateway Session Cookie
 const getHeaders = () => {
+    const token = getUserToken();
     return {
         'Content-Type': 'application/json',
+        'Authorization': token ? `Bearer ${token}` : '',
     };
 };
 
@@ -13,7 +15,6 @@ export const api = {
     // Servers
     getServers: async (): Promise<Server[]> => {
         const res = await fetch(`${BASE_URL}/servers`, { headers: getHeaders() });
-        if (res.status === 401) throw new Error('Unauthorized');
         if (!res.ok) throw new Error('Failed to fetch servers');
         return res.json();
     },

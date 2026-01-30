@@ -12,7 +12,10 @@ export const getUserToken = (): string | null => {
     }
 };
 
-export const API_BASE_URL = "/api"; // Gateway proxy is at root relative to where we serve, or we point to localhost:8080 if running standalone?
-// Docker compose maps 3000:80. Frontend calls its own backend which is nginx usually?
-// Wait, in dev mode (npm run dev), we need a proxy to 8080.
-// I will check vite.config.ts to set up proxy.
+export const authConfig = {
+    authority: "https://auth.voicemessenger.mywire.org/realms/voice-messenger",
+    client_id: "gateway-client",
+    redirect_uri: window.location.origin + '/', // Add trailing slash just in case
+    response_type: "code",
+    scope: "openid profile email",
+};
