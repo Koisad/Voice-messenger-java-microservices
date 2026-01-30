@@ -1,235 +1,273 @@
-import { useState, useEffect } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from 'react-oidc-context';
-import { LiveKitRoom, VideoConference } from '@livekit/components-react';
-import '@livekit/components-styles';
-import './index.css'; // Zakładam, że style przeniesiemy tutaj lub do index.css
-
-// Typy danych z Backendu
-interface Channel {
-    id: string;
-    name: string;
-    type: 'TEXT' | 'VOICE';
-}
-
-interface Server {
-    id: string;
-    name: string;
-    ownerId: string;
-    channels: Channel[];
-}
-
-const API_URL = 'https://api.voicemessenger.mywire.org';
+import { api } from './api/client';
+import { Server, Channel, Message } from './types';
+import './App.css';
+import { Hash, Volume2, Plus, LogOut } from 'lucide-react';
 
 export default function App() {
-    const auth = useAuth();
+  const auth = useAuth();
+  const [servers, setServers] = useState<Server[]>([]);
+  const [selectedServerId, setSelectedServerId] = useState<string | null>(null);
+  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [messageInput, setMessageInput] = useState("");
+  const [showCreateServer, setShowCreateServer] = useState(false);
+  const [newServerName, setNewServerName] = useState("");
+  const [members, setMembers] = useState<string[]>([]);
 
-    // Stan aplikacji
-    const [servers, setServers] = useState<Server[]>([]);
-    const [selectedServer, setSelectedServer] = useState<Server | null>(null);
-    const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
-    // LiveKit Stan
-    const [liveKitToken, setLiveKitToken] = useState('');
-    const [liveKitUrl, setLiveKitUrl] = useState('');
-
-    // UI Stan
-    const [isCreatingServer, setIsCreatingServer] = useState(false);
-    const [newServerName, setNewServerName] = useState('');
-
-    // 1. Pobieranie listy serwerów po zalogowaniu
-    useEffect(() => {
-        if (auth.isAuthenticated && auth.user?.access_token) {
-            fetchServers();
-        }
-    }, [auth.isAuthenticated, auth.user]);
-
-    const fetchServers = async () => {
-        try {
-            const res = await fetch(`${API_URL}/api/servers`, {
-                headers: { Authorization: `Bearer ${auth.user?.access_token}` }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setServers(data);
-                if (data.length > 0 && !selectedServer) {
-                    setSelectedServer(data[0]); // Wybierz pierwszy serwer domyślnie
-                }
-            }
-        } catch (err) {
-            console.error("Błąd pobierania serwerów", err);
-        }
-    };
-
-    // 2. Tworzenie nowego serwera
-    const handleCreateServer = async () => {
-        if (!newServerName.trim()) return;
-        try {
-            const res = await fetch(`${API_URL}/api/servers`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${auth.user?.access_token}`
-                },
-                // UWAGA: Klucz musi być serverName zgodnie z DTO w Javie!
-                body: JSON.stringify({ serverName: newServerName })
-            });
-
-            if (res.ok) {
-                const newServer = await res.json();
-                setServers([...servers, newServer]);
-                setSelectedServer(newServer);
-                setIsCreatingServer(false);
-                setNewServerName('');
-            }
-        } catch (err) {
-            alert("Nie udało się utworzyć serwera");
-        }
-    };
-
-    // 3. Dołączanie do kanału głosowego
-    const joinVoiceChannel = async (channelId: string) => {
-        if (activeChannelId === channelId) return; // Już tu jesteś
-
-        try {
-            const res = await fetch(`${API_URL}/api/media/token`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${auth.user?.access_token}`
-                },
-                // UWAGA: Backend oczekuje obiektu DTO
-                body: JSON.stringify({ channelId: channelId })
-            });
-
-            if (res.ok) {
-                const data = await res.json();
-                setLiveKitToken(data.token);
-                setLiveKitUrl(data.serverUrl); // Backend zwraca teraz serverUrl
-                setActiveChannelId(channelId);
-            } else {
-                alert("Błąd pobierania tokena LiveKit");
-            }
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
-    // --- EKRANY ---
-
-    if (auth.isLoading) {
-        return <div className="loading-screen">🔄 Łączenie...</div>;
+  // Initial Load
+  useEffect(() => {
+    if (auth.isAuthenticated) {
+      loadServers();
     }
+  }, [auth.isAuthenticated]);
 
-    if (!auth.isAuthenticated) {
-        return (
-            <div className="login-screen">
-                <h1>Voice Messenger 🎤</h1>
-                <button className="btn-primary" onClick={() => auth.signinRedirect()}>
-                    Zaloguj przez Keycloak
-                </button>
-            </div>
-        );
+  // Polling Messages (Simple implementation instead of WebSocket for now)
+  useEffect(() => {
+    if (!selectedServerId || !selectedChannelId) return;
+
+    // Initial fetch
+    api.getMessages(selectedServerId, selectedChannelId).then(setMessages).catch(console.error);
+
+    const interval = setInterval(() => {
+      api.getMessages(selectedServerId, selectedChannelId).then(setMessages).catch(console.error);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [selectedServerId, selectedChannelId]);
+
+  // Scroll to bottom
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Load Members when Server Changes
+  useEffect(() => {
+    if (selectedServerId) {
+      api.getServerMembers(selectedServerId).then(setMembers).catch(console.error);
     }
+  }, [selectedServerId]);
 
+  const loadServers = async () => {
+    try {
+      const data = await api.getServers();
+      setServers(data);
+      if (data.length > 0 && !selectedServerId) {
+        // Select first server by default
+        // setSelectedServerId(data[0].id);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleCreateServer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newServerName) return;
+    try {
+      await api.createServer(newServerName);
+      setNewServerName("");
+      setShowCreateServer(false);
+      loadServers();
+    } catch (err) {
+      alert("Failed to create server");
+    }
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!messageInput.trim() || !selectedServerId || !selectedChannelId) return;
+
+    try {
+      await api.sendMessage(selectedServerId, selectedChannelId, messageInput);
+      setMessageInput("");
+      // Optimistic update or wait for poll
+      const now = new Date(); // Temp
+      setMessages(prev => [...prev, {
+        id: 'temp-' + Date.now(),
+        content: messageInput,
+        senderId: auth.user?.profile.sub || 'me',
+        serverId: selectedServerId,
+        channelId: selectedChannelId,
+        timestamp: now.toISOString()
+      }]);
+    } catch (err) {
+      console.error("Msg send failed", err);
+    }
+  };
+
+  const selectedServer = servers.find(s => s.id === selectedServerId);
+
+  if (auth.isLoading) {
+    return <div className="flex items-center justify-center h-full">Loading Auth...</div>;
+  }
+
+  if (auth.error) {
+    return <div>Oops... {auth.error.message}</div>;
+  }
+
+  if (!auth.isAuthenticated) {
     return (
-        <div className="app-container">
-            {/* LEWY PASEK: LISTA SERWERÓW */}
-            <nav className="servers-nav">
-                {servers.map(server => (
-                    <div
-                        key={server.id}
-                        className={`server-icon ${selectedServer?.id === server.id ? 'active' : ''}`}
-                        onClick={() => setSelectedServer(server)}
-                        title={server.name}
-                    >
-                        {server.name.substring(0, 2).toUpperCase()}
-                    </div>
-                ))}
-                <div className="server-icon add-server" onClick={() => setIsCreatingServer(true)}>+</div>
-            </nav>
-
-            {/* PANEL BOCZNY: LISTA KANAŁÓW */}
-            <aside className="channels-sidebar">
-                <div className="server-header">
-                    <h3>{selectedServer?.name || "Wybierz serwer"}</h3>
-                </div>
-
-                {selectedServer && (
-                    <div className="channels-list">
-                        <div className="channel-category">KANAŁY GŁOSOWE</div>
-                        {selectedServer.channels
-                            .filter(ch => ch.type === 'VOICE')
-                            .map(channel => (
-                                <div
-                                    key={channel.id}
-                                    className={`channel-item ${activeChannelId === channel.id ? 'active' : ''}`}
-                                    onClick={() => joinVoiceChannel(channel.id)}
-                                >
-                                    🔊 {channel.name}
-                                </div>
-                            ))}
-
-                        <div className="channel-category">KANAŁY TEKSTOWE</div>
-                        {selectedServer.channels
-                            .filter(ch => ch.type === 'TEXT')
-                            .map(channel => (
-                                <div key={channel.id} className="channel-item text-channel">
-                                    # {channel.name}
-                                </div>
-                            ))}
-                    </div>
-                )}
-
-                <div className="user-bar">
-                    <div className="username">{auth.user?.profile.preferred_username}</div>
-                    <button className="btn-small" onClick={() => auth.removeUser()}>Wyloguj</button>
-                </div>
-            </aside>
-
-            {/* GŁÓWNY OBSZAR */}
-            <main className="main-content">
-                {liveKitToken ? (
-                    <LiveKitRoom
-                        video={true}
-                        audio={true}
-                        token={liveKitToken}
-                        serverUrl={liveKitUrl}
-                        connect={true}
-                        data-lk-theme="default"
-                        style={{ height: '100%' }}
-                        onDisconnected={() => {
-                            setLiveKitToken('');
-                            setActiveChannelId(null);
-                        }}
-                    >
-                        <VideoConference />
-                    </LiveKitRoom>
-                ) : (
-                    <div className="welcome-placeholder">
-                        <h2>Witaj w {selectedServer?.name} 👋</h2>
-                        <p>Wybierz kanał głosowy z lewej strony, aby dołączyć.</p>
-                    </div>
-                )}
-            </main>
-
-            {/* MODAL TWORZENIA SERWERA */}
-            {isCreatingServer && (
-                <div className="modal-overlay">
-                    <div className="modal">
-                        <h3>Stwórz nowy serwer</h3>
-                        <input
-                            value={newServerName}
-                            onChange={e => setNewServerName(e.target.value)}
-                            placeholder="Nazwa serwera"
-                            autoFocus
-                        />
-                        <div className="modal-actions">
-                            <button onClick={() => setIsCreatingServer(false)}>Anuluj</button>
-                            <button className="btn-primary" onClick={handleCreateServer}>Utwórz</button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
+      <div className="flex items-center justify-center h-full flex-col gap-4">
+        <h1>Voice Messenger</h1>
+        <button className="btn btn-primary" onClick={() => auth.signinRedirect()}>
+          Log in with Keycloak
+        </button>
+      </div>
     );
+  }
+
+  return (
+    <div className="app-layout">
+      {/* 1. Server Sidebar */}
+      <nav className="server-sidebar">
+        {servers.map(server => (
+          <div
+            key={server.id}
+            className={`server-icon ${selectedServerId === server.id ? 'active' : ''}`}
+            onClick={() => {
+              setSelectedServerId(server.id);
+              // Default to first channel if exists
+              if (server.channels && server.channels.length > 0) {
+                setSelectedChannelId(server.channels[0].id);
+              }
+            }}
+            title={server.name}
+          >
+            {server.name.substring(0, 2).toUpperCase()}
+          </div>
+        ))}
+        <div className="server-icon server-icon-add" onClick={() => setShowCreateServer(true)}>
+          <Plus />
+        </div>
+        <div className="server-icon" style={{ marginTop: 'auto', background: 'transparent', color: 'var(--danger)' }} onClick={() => auth.removeUser()}>
+          <LogOut />
+        </div>
+      </nav>
+
+      {/* 2. Channel Sidebar (if server selected) */}
+      {selectedServer ? (
+        <div className="channel-sidebar">
+          <header className="server-header">
+            <span>{selectedServer.name}</span>
+          </header>
+          <div className="channel-list">
+            {selectedServer.channels?.map(channel => (
+              <div
+                key={channel.id}
+                className={`channel-item ${selectedChannelId === channel.id ? 'active' : ''}`}
+                onClick={() => setSelectedChannelId(channel.id)}
+              >
+                {channel.type === 'VOICE' ? <Volume2 size={18} /> : <Hash size={18} />}
+                {channel.name}
+              </div>
+            ))}
+          </div>
+          {/* User Profile Mini */}
+          <div style={{ padding: 16, background: 'var(--bg-tertiary)' }}>
+            <div style={{ fontWeight: 600, fontSize: 14 }}>{auth.user?.profile.preferred_username || "User"}</div>
+            <div style={{ fontSize: 12, color: 'gray' }}>Online</div>
+          </div>
+        </div>
+      ) : (
+        <div className="channel-sidebar" style={{ alignItems: 'center', justifyContent: 'center', padding: 20, textAlign: 'center' }}>
+          Select a server
+        </div>
+      )}
+
+      {/* 3. Chat Area */}
+      <main className="chat-area">
+        {selectedServer && selectedChannelId ? (
+          <>
+            <header className="chat-header">
+              <Hash size={24} color="#949ba4" />
+              <span>
+                {selectedServer.channels.find(c => c.id === selectedChannelId)?.name || 'unknown'}
+              </span>
+            </header>
+
+            <div className="messages-list">
+              {messages.map((msg, i) => (
+                <div key={msg.id || i} className="message-item">
+                  <div className="message-avatar"></div>
+                  <div className="message-content-wrapper">
+                    <div className="message-header">
+                      <span className="message-author">
+                        {msg.senderId === auth.user?.profile.sub ? 'You' : msg.senderId}
+                      </span>
+                      <span className="message-time">
+                        {new Date(msg.timestamp).toLocaleTimeString()}
+                      </span>
+                    </div>
+                    <div className="message-text">
+                      {msg.content}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <div ref={bottomRef} />
+            </div>
+
+            <form className="chat-input-area" onSubmit={handleSendMessage}>
+              <div className="chat-input-wrapper">
+                <input
+                  className="chat-input"
+                  placeholder={`Message #${selectedServer.channels.find(c => c.id === selectedChannelId)?.name}`}
+                  value={messageInput}
+                  onChange={(e) => setMessageInput(e.target.value)}
+                />
+              </div>
+            </form>
+          </>
+        ) : (
+          <div className="flex items-center justify-center h-full text-muted">
+            Welcome to Voice Messenger
+          </div>
+        )}
+      </main>
+
+      {/* 4. Members Sidebar (Right) */}
+      {selectedServer && (
+        <aside className="members-sidebar">
+          <h3 style={{ textTransform: 'uppercase', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 16 }}>Members</h3>
+          {members.map((m, i) => (
+            <div key={i} className="member-item">
+              <div className="message-avatar" style={{ width: 32, height: 32 }}></div>
+              <span>{m}</span>
+            </div>
+          ))}
+        </aside>
+      )}
+
+      {/* Create Server Modal */}
+      {showCreateServer && (
+        <div className="modal-overlay" onClick={(e) => {
+          if (e.target === e.currentTarget) setShowCreateServer(false);
+        }}>
+          <div className="modal-content">
+            <h2 style={{ marginBottom: 8 }}>Customize Your Server</h2>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: 20 }}>
+              Give your new server a personality with a name.
+            </p>
+            <form onSubmit={handleCreateServer}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                Server Name
+              </label>
+              <input
+                className="input-field"
+                value={newServerName}
+                onChange={(e) => setNewServerName(e.target.value)}
+                autoFocus
+              />
+              <div className="flex justify-center" style={{ marginTop: 20 }}>
+                <button type="submit" className="btn btn-primary w-full">Create</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
