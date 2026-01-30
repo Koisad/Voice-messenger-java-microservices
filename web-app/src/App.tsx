@@ -171,7 +171,7 @@ export default function App() {
                     <Plus />
                 </div>
 
-                <div className="server-icon logout-icon" onClick={() => auth.removeUser()}>
+                <div className="server-icon logout-icon" onClick={() => auth.signoutRedirect()}>
                     <LogOut />
                 </div>
             </nav>
@@ -179,11 +179,11 @@ export default function App() {
             {selectedServer ? (
                 <div className="channel-sidebar">
                     <header className="server-header">
-            <span title={selectedServer.name}>
-              {(selectedServer.name || "Bez nazwy").length > 15
-                  ? selectedServer.name?.substring(0,15) + "..."
-                  : selectedServer.name}
-            </span>
+                        <span title={selectedServer.name}>
+                            {(selectedServer.name || "Bez nazwy").length > 15
+                                ? selectedServer.name?.substring(0, 15) + "..."
+                                : selectedServer.name}
+                        </span>
                         {/* POPRAWKA 2: Owinięcie ikony w div z title, bo Lucide nie obsługuje title bezpośrednio w strict TS */}
                         <div
                             className="icon-btn"
@@ -250,9 +250,9 @@ export default function App() {
                                     <div className="message-avatar" />
                                     <div className="message-content">
                                         <div className="message-header">
-                      <span className="author">
-                        {msg.senderId === auth.user?.profile.preferred_username ? 'Ty' : msg.senderId}
-                      </span>
+                                            <span className="author">
+                                                {msg.senderId === auth.user?.profile.preferred_username ? 'Ty' : msg.senderId}
+                                            </span>
                                             <span className="time">{new Date(msg.timestamp).toLocaleTimeString()}</span>
                                         </div>
                                         <div className="text">{msg.content}</div>
@@ -289,7 +289,7 @@ export default function App() {
             )}
 
             {showModal && (
-                <div className="modal-overlay" onClick={(e) => { if(e.target === e.currentTarget) setShowModal(false) }}>
+                <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false) }}>
                     <div className="modal-content">
                         <div className="modal-tabs">
                             <button
@@ -317,7 +317,7 @@ export default function App() {
                                 autoFocus
                                 placeholder={modalMode === 'CREATE' ? 'Np. Gaming Room' : 'Wklej ID tutaj...'}
                             />
-                            <button type="submit" className="btn btn-primary w-full" style={{marginTop: 20}}>
+                            <button type="submit" className="btn btn-primary w-full" style={{ marginTop: 20 }}>
                                 {modalMode === 'CREATE' ? 'Utwórz' : 'Dołącz'}
                             </button>
                         </form>
