@@ -1,13 +1,11 @@
 import type { Server, Message, CreateServerRequest, SendMessageRequest } from '../types';
-import { getUserToken } from './config';
 
 const BASE_URL = '/api';
 
+// No Authorization header needed, relying on Gateway Session Cookie
 const getHeaders = () => {
-    const token = getUserToken();
     return {
         'Content-Type': 'application/json',
-        'Authorization': token ? `Bearer ${token}` : '',
     };
 };
 
@@ -15,6 +13,7 @@ export const api = {
     // Servers
     getServers: async (): Promise<Server[]> => {
         const res = await fetch(`${BASE_URL}/servers`, { headers: getHeaders() });
+        if (res.status === 401) throw new Error('Unauthorized');
         if (!res.ok) throw new Error('Failed to fetch servers');
         return res.json();
     },
@@ -29,7 +28,7 @@ export const api = {
         return res.json();
     },
 
-    // Members & Joining (Added based on user request/endpoints provided)
+    // Members & Joining
     joinServer: async (serverId: string): Promise<void> => {
         const res = await fetch(`${BASE_URL}/servers/${serverId}/join`, {
             method: 'POST',
@@ -54,7 +53,6 @@ export const api = {
 
     // Chat
     getMessages: async (serverId: string, channelId: string): Promise<Message[]> => {
-        // Construct query params manually or use URLSearchParams
         const params = new URLSearchParams({ serverId, channelId });
         const res = await fetch(`${BASE_URL}/chat/history?${params.toString()}`, { headers: getHeaders() });
         if (!res.ok) throw new Error('Failed to fetch messages');

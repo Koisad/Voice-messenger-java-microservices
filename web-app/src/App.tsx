@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useAuth } from 'react-oidc-context';
 import { api } from './api/client';
 import type { Server, Message } from './types';
 import './App.css';
 import { Hash, Volume2, Plus, LogOut } from 'lucide-react';
 
 export default function App() {
-  const auth = useAuth();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+
   const [servers, setServers] = useState<Server[]>([]);
   const [selectedServerId, setSelectedServerId] = useState<string | null>(null);
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
@@ -18,20 +19,37 @@ export default function App() {
 
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Initial Load
+  // Initial Auth Check
   useEffect(() => {
-    if (auth.isAuthenticated) {
-      loadServers();
-    }
-  }, [auth.isAuthenticated]);
+    checkAuth();
+  }, []);
 
-  // Polling Messages (Simple implementation instead of WebSocket for now)
+  const checkAuth = async () => {
+    try {
+      // Try fetching servers to check if we are logged in
+      const data = await api.getServers();
+      setServers(data);
+      setIsAuthenticated(true);
+      if (data.length > 0) {
+        // Optional: select first
+      }
+    } catch (err) {
+      if ((err as Error).message === 'Unauthorized') {
+        setIsAuthenticated(false);
+      } else {
+        // Assume logged in but error, or generic error - force login if critical
+        console.error(err);
+      }
+    } finally {
+      setIsLoadingAuth(false);
+    }
+  };
+
+  // Polling Messages
   useEffect(() => {
     if (!selectedServerId || !selectedChannelId) return;
 
-    // Initial fetch
     api.getMessages(selectedServerId, selectedChannelId).then(setMessages).catch(console.error);
-
     const interval = setInterval(() => {
       api.getMessages(selectedServerId, selectedChannelId).then(setMessages).catch(console.error);
     }, 3000);
@@ -43,25 +61,12 @@ export default function App() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Load Members when Server Changes
+  // Load Members
   useEffect(() => {
     if (selectedServerId) {
       api.getServerMembers(selectedServerId).then(setMembers).catch(console.error);
     }
   }, [selectedServerId]);
-
-  const loadServers = async () => {
-    try {
-      const data = await api.getServers();
-      setServers(data);
-      if (data.length > 0 && !selectedServerId) {
-        // Select first server by default
-        // setSelectedServerId(data[0].id);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   const handleCreateServer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,7 +75,7 @@ export default function App() {
       await api.createServer(newServerName);
       setNewServerName("");
       setShowCreateServer(false);
-      loadServers();
+      checkAuth(); // Refresh servers
     } catch (err) {
       alert("Failed to create server");
     }
@@ -83,12 +88,11 @@ export default function App() {
     try {
       await api.sendMessage(selectedServerId, selectedChannelId, messageInput);
       setMessageInput("");
-      // Optimistic update or wait for poll
-      const now = new Date(); // Temp
+      const now = new Date();
       setMessages(prev => [...prev, {
         id: 'temp-' + Date.now(),
         content: messageInput,
-        senderId: auth.user?.profile.sub || 'me',
+        senderId: 'Me', // We don't have user profile easily accessible without an endpoint, using placeholder
         serverId: selectedServerId,
         channelId: selectedChannelId,
         timestamp: now.toISOString()
@@ -98,21 +102,27 @@ export default function App() {
     }
   };
 
+  const handleLogin = () => {
+    // Redirect to Gateway OAuth2 endpoint
+    window.location.href = "/oauth2/authorization/keycloak";
+  };
+
+  const handleLogout = () => {
+    // Redirect to Gateway Logout
+    window.location.href = "/logout";
+  }
+
   const selectedServer = servers.find(s => s.id === selectedServerId);
 
-  if (auth.isLoading) {
-    return <div className="flex items-center justify-center h-full">Loading Auth...</div>;
+  if (isLoadingAuth) {
+    return <div className="flex items-center justify-center h-full">Loading...</div>;
   }
 
-  if (auth.error) {
-    return <div>Oops... {auth.error.message}</div>;
-  }
-
-  if (!auth.isAuthenticated) {
+  if (!isAuthenticated) {
     return (
       <div className="flex items-center justify-center h-full flex-col gap-4">
         <h1>Voice Messenger</h1>
-        <button className="btn btn-primary" onClick={() => auth.signinRedirect()}>
+        <button className="btn btn-primary" onClick={handleLogin}>
           Log in with Keycloak
         </button>
       </div>
@@ -129,7 +139,6 @@ export default function App() {
             className={`server-icon ${selectedServerId === server.id ? 'active' : ''}`}
             onClick={() => {
               setSelectedServerId(server.id);
-              // Default to first channel if exists
               if (server.channels && server.channels.length > 0) {
                 setSelectedChannelId(server.channels[0].id);
               }
@@ -142,12 +151,12 @@ export default function App() {
         <div className="server-icon server-icon-add" onClick={() => setShowCreateServer(true)}>
           <Plus />
         </div>
-        <div className="server-icon" style={{ marginTop: 'auto', background: 'transparent', color: 'var(--danger)' }} onClick={() => auth.removeUser()}>
+        <div className="server-icon" style={{ marginTop: 'auto', background: 'transparent', color: 'var(--danger)' }} onClick={handleLogout}>
           <LogOut />
         </div>
       </nav>
 
-      {/* 2. Channel Sidebar (if server selected) */}
+      {/* 2. Channel Sidebar */}
       {selectedServer ? (
         <div className="channel-sidebar">
           <header className="server-header">
@@ -165,9 +174,8 @@ export default function App() {
               </div>
             ))}
           </div>
-          {/* User Profile Mini */}
           <div style={{ padding: 16, background: 'var(--bg-tertiary)' }}>
-            <div style={{ fontWeight: 600, fontSize: 14 }}>{auth.user?.profile.preferred_username || "User"}</div>
+            <div style={{ fontWeight: 600, fontSize: 14 }}>User</div>
             <div style={{ fontSize: 12, color: 'gray' }}>Online</div>
           </div>
         </div>
@@ -195,7 +203,7 @@ export default function App() {
                   <div className="message-content-wrapper">
                     <div className="message-header">
                       <span className="message-author">
-                        {msg.senderId === auth.user?.profile.sub ? 'You' : msg.senderId}
+                        {msg.senderId}
                       </span>
                       <span className="message-time">
                         {new Date(msg.timestamp).toLocaleTimeString()}
@@ -228,7 +236,7 @@ export default function App() {
         )}
       </main>
 
-      {/* 4. Members Sidebar (Right) */}
+      {/* 4. Members */}
       {selectedServer && (
         <aside className="members-sidebar">
           <h3 style={{ textTransform: 'uppercase', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 16 }}>Members</h3>
@@ -241,16 +249,13 @@ export default function App() {
         </aside>
       )}
 
-      {/* Create Server Modal */}
+      {/* Create Modal */}
       {showCreateServer && (
         <div className="modal-overlay" onClick={(e) => {
           if (e.target === e.currentTarget) setShowCreateServer(false);
         }}>
           <div className="modal-content">
             <h2 style={{ marginBottom: 8 }}>Customize Your Server</h2>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: 20 }}>
-              Give your new server a personality with a name.
-            </p>
             <form onSubmit={handleCreateServer}>
               <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
                 Server Name
