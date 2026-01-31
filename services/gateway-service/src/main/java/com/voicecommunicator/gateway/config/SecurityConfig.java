@@ -22,6 +22,7 @@ public class SecurityConfig {
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeExchange(exchanges -> exchanges
+                        .pathMatchers("/ws/**").permitAll()
                         .pathMatchers("/ws/signal/**").permitAll()
                         .pathMatchers("/actuator/**").permitAll()
                         .pathMatchers(org.springframework.http.HttpMethod.OPTIONS).permitAll()

@@ -4,7 +4,6 @@ import lombok.Data;
 
 @Data
 public class SendMessageRequestDTO {
-    private String serverId;
-    private String channelId;
+    private String senderId;
     private String content;
 }

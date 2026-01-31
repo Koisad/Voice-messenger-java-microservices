@@ -30,7 +30,7 @@ spring:
         - id: chat-route
           uri: ${CHAT_URI}
           predicates:
-            - Path=/api/chat/**
+            - Path=/api/chat/**, /ws/**
         - id: room-route
           uri: ${ROOM_URI}
           predicates:
@@ -51,16 +51,3 @@ spring:
           uri: ${MEDIA_URI}
           predicates:
             - Path=/api/media/**
-      globalcors:
-        cors-configurations:
-          '[/**]':
-            allowedOrigins:
-              - "https://voicemessenger.mywire.org"
-            allowedMethods:
-              - GET
-              - POST
-              - PUT
-              - DELETE
-              - OPTIONS
-            allowedHeaders: "*"
-            allowCredentials: true
