@@ -39,7 +39,7 @@ public class ChatController {
                 request.getContent()
         );
 
-        String dest = "/topic/server." + serverId + "/channel." + channelId;
+        String dest = "/topic/server." + serverId + ".channel." + channelId;
         messagingTemplate.convertAndSend(dest, message);
     }
 
