@@ -52,10 +52,15 @@ export default function App() {
 
     // 2. Obsługa zmiany kanału (Tekst vs Głos)
     useEffect(() => {
-        if (!selectedChannel) return;
+        if (!selectedChannel || !selectedServerId) return;
 
         // Reset wiadomości przy zmianie kanału
         setMessages([]);
+
+        // Pobierz historię czatu dla obu typów kanałów
+        api.getMessages(selectedServerId, selectedChannel.id)
+            .then(setMessages)
+            .catch(console.error);
 
         if (selectedChannel.type === 'VOICE') {
             api.getLiveKitToken(selectedChannel.id)
@@ -65,14 +70,11 @@ export default function App() {
                     setIsVoiceActive(true);
                 })
                 .catch(err => console.error("Błąd LiveKit:", err));
-            // Pobierz historię czatu także dla kanałów głosowych
-            fetchMessages();
         } else {
             setIsVoiceActive(false);
             setLiveKitToken("");
-            fetchMessages();
         }
-    }, [selectedChannelId]);
+    }, [selectedChannelId, selectedServerId]);
 
     // 3. Scalanie REST history + WebSocket messages
     const displayMessages = React.useMemo(() => {
