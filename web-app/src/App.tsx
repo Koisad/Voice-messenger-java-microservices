@@ -65,6 +65,8 @@ export default function App() {
                     setIsVoiceActive(true);
                 })
                 .catch(err => console.error("Błąd LiveKit:", err));
+            // Pobierz historię czatu także dla kanałów głosowych
+            fetchMessages();
         } else {
             setIsVoiceActive(false);
             setLiveKitToken("");
