@@ -13,6 +13,7 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -27,17 +28,20 @@ public class ChatController {
     // WebSocket
     @MessageMapping("/send/{serverId}/{channelId}")
     public void sendMessage(@DestinationVariable String serverId,
-                                                @DestinationVariable String channelId,
-                                                @Payload SendMessageRequestDTO request) {
+            @DestinationVariable String channelId,
+            @Payload SendMessageRequestDTO request,
+            Principal principal) {
 
-        log.info("WebSocket: Message on channel {} from {}", channelId, request.getSenderId());
+        String userId = principal.getName();
+
+        log.info("WebSocket: Message on channel {} from {} ({})", channelId, request.getUsername(), userId);
 
         Message message = chatService.saveMessage(
-                request.getSenderId(),
+                userId,
+                request.getUsername(),
                 serverId,
                 channelId,
-                request.getContent()
-        );
+                request.getContent());
 
         String dest = "/topic/server." + serverId + ".channel." + channelId;
         messagingTemplate.convertAndSend(dest, message);
@@ -49,7 +53,6 @@ public class ChatController {
 
         return ResponseEntity.ok(chatService.getChannelMessages(
                 request.getServerId(),
-                request.getChannelId()
-        ));
+                request.getChannelId()));
     }
 }

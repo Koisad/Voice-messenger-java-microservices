@@ -1,7 +1,6 @@
 package com.voicecommunicator.room.controller;
 
 import com.voicecommunicator.room.dto.CreateServerRequestDTO;
-import com.voicecommunicator.room.model.Member;
 import com.voicecommunicator.room.model.Server;
 import com.voicecommunicator.room.service.ServerService;
 import lombok.RequiredArgsConstructor;

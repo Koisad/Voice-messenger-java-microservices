@@ -12,19 +12,22 @@
   "dependencies": {
     "@livekit/components-react": "^2.0.0",
     "@livekit/components-styles": "^1.0.9",
+    "@stomp/stompjs": "^7.0.0",
     "livekit-client": "^2.0.0",
     "lucide-react": "^0.563.0",
     "oidc-client-ts": "^3.4.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-oidc-context": "^3.3.0",
-    "react-router-dom": "^7.13.0"
+    "react-router-dom": "^7.13.0",
+    "sockjs-client": "^1.6.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
+    "@types/sockjs-client": "^1.5.4",
     "@vitejs/plugin-react": "^5.1.1",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",

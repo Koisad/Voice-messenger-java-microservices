@@ -8,17 +8,17 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 
-
 @Service
 @RequiredArgsConstructor
 public class ChatService {
 
     private final MessageRepository messageRepository;
 
-    public Message saveMessage(String userId, String serverId, String channelId, String content) {
+    public Message saveMessage(String userId, String username, String serverId, String channelId, String content) {
 
         Message message = Message.builder()
                 .senderId(userId)
+                .senderUsername(username)
                 .serverId(serverId)
                 .channelId(channelId)
                 .content(content)
