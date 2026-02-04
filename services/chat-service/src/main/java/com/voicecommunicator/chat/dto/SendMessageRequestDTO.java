@@ -4,6 +4,6 @@ import lombok.Data;
 
 @Data
 public class SendMessageRequestDTO {
-    private String senderId;
+    private String username;
     private String content;
 }

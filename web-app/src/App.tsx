@@ -35,7 +35,8 @@ export default function App() {
         serverId: selectedServerId,
         channelId: selectedChannelId,
         userToken: auth.user?.access_token,
-        currentUserId: auth.user?.profile.sub // UUID z JWT, NIE preferred_username!
+        currentUserId: auth.user?.profile.sub, // UUID z JWT
+        currentUsername: auth.user?.profile.preferred_username // Username do wysłania
     });
 
     const bottomRef = useRef<HTMLDivElement>(null);

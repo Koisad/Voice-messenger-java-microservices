@@ -9,9 +9,10 @@ interface UseChatSocketProps {
     channelId: string | null;
     userToken?: string | null;
     currentUserId?: string;
+    currentUsername?: string;
 }
 
-export const useChatSocket = ({ serverId, channelId, userToken, currentUserId }: UseChatSocketProps) => {
+export const useChatSocket = ({ serverId, channelId, userToken, currentUserId, currentUsername }: UseChatSocketProps) => {
     const [socketMessages, setSocketMessages] = useState<ChatMessage[]>([]);
     const clientRef = useRef<Client | null>(null);
     const subscriptionRef = useRef<StompSubscription | null>(null);
@@ -106,7 +107,7 @@ export const useChatSocket = ({ serverId, channelId, userToken, currentUserId }:
                     Authorization: `Bearer ${userToken}`
                 },
                 body: JSON.stringify({
-                    senderId: currentUserId,
+                    username: currentUsername,
                     content: content
                 }),
             });

@@ -11,10 +11,9 @@ import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -31,16 +30,15 @@ public class ChatController {
     public void sendMessage(@DestinationVariable String serverId,
             @DestinationVariable String channelId,
             @Payload SendMessageRequestDTO request,
-            @AuthenticationPrincipal Jwt jwt) {
+            Principal principal) {
 
-        String userId = jwt.getSubject();
-        String username = jwt.getClaimAsString("preferred_username");
+        String userId = principal.getName();
 
-        log.info("WebSocket: Message on channel {} from {} ({})", channelId, username, userId);
+        log.info("WebSocket: Message on channel {} from {} ({})", channelId, request.getUsername(), userId);
 
         Message message = chatService.saveMessage(
                 userId,
-                username,
+                request.getUsername(),
                 serverId,
                 channelId,
                 request.getContent());
