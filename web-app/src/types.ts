@@ -19,6 +19,7 @@ export interface Server {
 export interface Message {
     id: string;
     senderId: string;
+    senderUsername?: string; // Username z backendu
     content: string;
     serverId: string;
     channelId: string;

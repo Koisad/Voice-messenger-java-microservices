@@ -11,6 +11,8 @@ import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,17 +29,21 @@ public class ChatController {
     // WebSocket
     @MessageMapping("/send/{serverId}/{channelId}")
     public void sendMessage(@DestinationVariable String serverId,
-                                                @DestinationVariable String channelId,
-                                                @Payload SendMessageRequestDTO request) {
+            @DestinationVariable String channelId,
+            @Payload SendMessageRequestDTO request,
+            @AuthenticationPrincipal Jwt jwt) {
 
-        log.info("WebSocket: Message on channel {} from {}", channelId, request.getSenderId());
+        String userId = jwt.getSubject();
+        String username = jwt.getClaimAsString("preferred_username");
+
+        log.info("WebSocket: Message on channel {} from {} ({})", channelId, username, userId);
 
         Message message = chatService.saveMessage(
-                request.getSenderId(),
+                userId,
+                username,
                 serverId,
                 channelId,
-                request.getContent()
-        );
+                request.getContent());
 
         String dest = "/topic/server." + serverId + ".channel." + channelId;
         messagingTemplate.convertAndSend(dest, message);
@@ -49,7 +55,6 @@ public class ChatController {
 
         return ResponseEntity.ok(chatService.getChannelMessages(
                 request.getServerId(),
-                request.getChannelId()
-        ));
+                request.getChannelId()));
     }
 }

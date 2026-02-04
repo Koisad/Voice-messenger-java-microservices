@@ -35,7 +35,7 @@ export default function App() {
         serverId: selectedServerId,
         channelId: selectedChannelId,
         userToken: auth.user?.access_token,
-        currentUserId: auth.user?.profile.preferred_username
+        currentUserId: auth.user?.profile.sub // UUID z JWT, NIE preferred_username!
     });
 
     const bottomRef = useRef<HTMLDivElement>(null);
@@ -279,7 +279,7 @@ export default function App() {
                                     <div className="message-content">
                                         <div className="message-header">
                                             <span className="author">
-                                                {msg.senderId === auth.user?.profile.preferred_username ? 'Ty' : msg.senderId}
+                                                {msg.senderUsername || (msg.senderId.length > 20 ? msg.senderId.substring(0, 8) + '...' : msg.senderId)}
                                             </span>
                                             <span className="time">{new Date(msg.timestamp).toLocaleTimeString()}</span>
                                         </div>
