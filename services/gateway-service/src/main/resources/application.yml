@@ -34,7 +34,7 @@ spring:
         - id: room-route
           uri: ${ROOM_URI}
           predicates:
-            - Path=/api/servers/**
+            - Path=/api/servers/**, /api/friendships/**, /api/users/**
         - id: signaling-route
           uri: ${SIGNALING_URI}
           predicates:

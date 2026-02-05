@@ -11,10 +11,13 @@ import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -54,5 +57,16 @@ public class ChatController {
         return ResponseEntity.ok(chatService.getChannelMessages(
                 request.getServerId(),
                 request.getChannelId()));
+    }
+
+    @PostMapping("/dm/{addresseeId}")
+    public ResponseEntity<Map<String, String>> getDMChannel(
+            @PathVariable String addresseeId,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        String userId = jwt.getSubject();
+        String channelId = chatService.getDMChannelId(userId, addresseeId);
+
+        return ResponseEntity.ok(Map.of("channelId", channelId));
     }
 }

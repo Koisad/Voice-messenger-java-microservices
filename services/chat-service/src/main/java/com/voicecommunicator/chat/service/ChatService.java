@@ -31,4 +31,12 @@ public class ChatService {
     public List<Message> getChannelMessages(String serverId, String channelId) {
         return messageRepository.findByServerIdAndChannelIdOrderByTimestampAsc(serverId, channelId);
     }
+
+    public String getDMChannelId(String userId1, String userId2) {
+        if (userId1.compareTo(userId2) < 0) {
+            return userId1 + "_" + userId2;
+        } else {
+            return userId2 + "_" + userId1;
+        }
+    }
 }
