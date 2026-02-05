@@ -31,7 +31,8 @@ public class WebSocketConfig implements WebSocketConfigurer {
                 .addInterceptors(jwtHandshakeInterceptor)
                 .setHandshakeHandler(new DefaultHandshakeHandler() {
                     @Override
-                    protected Principal determineUser(ServerHttpRequest request, WebSocketHandler wsHandler, Map<String, Object> attributes) {
+                    protected Principal determineUser(ServerHttpRequest request, WebSocketHandler wsHandler,
+                            Map<String, Object> attributes) {
                         return (Principal) attributes.get("user");
                     }
                 });

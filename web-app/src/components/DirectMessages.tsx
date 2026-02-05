@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api/client';
 import type { Friendship, Message } from '../types';
-import { Phone, ArrowLeft, Send } from 'lucide-react';
+import { /* Phone, */ ArrowLeft, Send } from 'lucide-react';
 import { useChatSocket } from '../hooks/useChatSocket';
 import './DirectMessages.css';
 
@@ -9,7 +9,7 @@ interface DirectMessagesProps {
     currentUserId: string;
     currentUsername: string;
     userToken?: string;
-    onStartCall: (friendId: string, friendUsername: string) => void;
+    onStartCall?: (friendId: string, friendUsername: string) => void;
     onBack: () => void;
 }
 
@@ -17,7 +17,7 @@ export const DirectMessages: React.FC<DirectMessagesProps> = ({
     currentUserId,
     currentUsername,
     userToken,
-    onStartCall,
+    // onStartCall, // DISABLED
     onBack
 }) => {
     const [friends, setFriends] = useState<Friendship[]>([]);
@@ -127,14 +127,17 @@ export const DirectMessages: React.FC<DirectMessagesProps> = ({
                     <button className="btn-back" onClick={() => setSelectedFriend(null)}>
                         <ArrowLeft size={20} />
                     </button>
-                    <span className="dm-friend-name">{selectedFriend.username}</span>
-                    <button
-                        className="btn-call"
-                        onClick={() => onStartCall(selectedFriend.id, selectedFriend.username)}
-                        title="Zadzwoń"
-                    >
-                        <Phone size={20} />
-                    </button>
+                    <h3>{selectedFriend.username}</h3>
+                    <div className="dm-actions">
+                        {/* Call button disabled until WebRTC is ready */}
+                        {/* <button
+                            className="call-btn"
+                            onClick={() => onStartCall(selectedFriend.id, selectedFriend.username)}
+                            title="Start Call"
+                        >
+                            <Phone size={18} /> Call
+                        </button> */}
+                    </div>
                 </header>
 
                 <div className="messages-list">

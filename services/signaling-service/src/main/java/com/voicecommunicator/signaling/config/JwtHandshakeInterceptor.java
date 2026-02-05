@@ -23,10 +23,11 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
 
     @Override
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response,
-                                   WebSocketHandler wsHandler, Map<String, Object> attributes) {
+            WebSocketHandler wsHandler, Map<String, Object> attributes) {
         try {
             String query = request.getURI().getQuery();
-            if (query == null) return false;
+            if (query == null)
+                return false;
 
             String token = UriComponentsBuilder.fromUri(request.getURI())
                     .build()
@@ -50,6 +51,6 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
 
     @Override
     public void afterHandshake(ServerHttpRequest request, ServerHttpResponse response,
-                               WebSocketHandler wsHandler, Exception exception) {
+            WebSocketHandler wsHandler, Exception exception) {
     }
 }

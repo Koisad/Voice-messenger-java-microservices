@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import type { Friendship, FriendUser } from '../types';
-import { UserPlus, UserCheck, UserX, Phone, MessageSquare, Trash2, Search, Loader } from 'lucide-react';
+import { UserPlus, UserCheck, UserX, MessageSquare, Trash2, Search, Loader } from 'lucide-react';
 import './Friends.css';
 
 interface FriendsProps {
     currentUserId: string;
     currentUsername: string;
     onStartDM: (friendId: string, friendUsername: string) => void;
-    onStartCall: (friendId: string, friendUsername: string) => void;
+    onStartCall?: (friendId: string, friendUsername: string) => void;
 }
 
-export const Friends: React.FC<FriendsProps> = ({ currentUserId, onStartDM, onStartCall }) => {
+export const Friends: React.FC<FriendsProps> = ({ currentUserId, onStartDM /*, onStartCall */ }) => {
     const [activeTab, setActiveTab] = useState<'friends' | 'requests'>('friends');
     const [friends, setFriends] = useState<Friendship[]>([]);
     const [requests, setRequests] = useState<Friendship[]>([]);
@@ -115,7 +115,7 @@ export const Friends: React.FC<FriendsProps> = ({ currentUserId, onStartDM, onSt
             ? friendship.addresseeUsername
             : friendship.requesterUsername;
 
-        if (!confirm(`Czy na pewno usunąć ${friendName} z listy znajomych?`)) return;
+        if (!confirm(`Czy na pewno usunąć ${friendName} z listy znajomych ? `)) return;
 
         setLoading(true);
         try {
@@ -206,13 +206,14 @@ export const Friends: React.FC<FriendsProps> = ({ currentUserId, onStartDM, onSt
                                     <div className="message-avatar" />
                                     <span className="friend-name">{friend.username}</span>
                                     <div className="friend-actions">
-                                        <button
+                                        {/* Call button disabled until WebRTC is ready */}
+                                        {/* <button
                                             className="btn-icon"
                                             onClick={() => onStartCall(friend.id, friend.username)}
                                             title="Zadzwoń"
                                         >
                                             <Phone size={18} />
-                                        </button>
+                                        </button> */}
                                         <button
                                             className="btn-icon"
                                             onClick={() => onStartDM(friend.id, friend.username)}

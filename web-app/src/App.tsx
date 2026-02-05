@@ -7,10 +7,10 @@ import type { Server, Message, MemberDTO } from './types';
 import './App.css';
 import { Hash, Volume2, Plus, LogOut, Copy, Users, MessageCircle } from 'lucide-react';
 import { useChatSocket } from './hooks/useChatSocket';
-import { useWebRTCCall } from './hooks/useWebRTCCall';
+// import { useWebRTCCall } from './hooks/useWebRTCCall';
 import { Friends } from './components/Friends';
 import { DirectMessages } from './components/DirectMessages';
-import { VoiceCallModal } from './components/VoiceCallModal';
+// import { VoiceCallModal } from './components/VoiceCallModal';
 
 export default function App() {
     const auth = useAuth();
@@ -53,11 +53,12 @@ export default function App() {
     const chatChannel = selectedServer?.channels.find(c => c.id === chatChannelId);
 
     // --- WEBRTC CALL ---
-    const webrtcCall = useWebRTCCall({
-        userToken: auth.user?.access_token,
-        currentUserId: auth.user?.profile.sub,
-        currentUsername: auth.user?.profile.preferred_username
-    });
+    // WebRTC calling - DISABLED until call notifications are needed
+    // const webrtcCall = useWebRTCCall({
+    //     userToken: auth.accessToken,
+    //     currentUserId: auth.user?.sub,
+    //     currentUsername: auth.user?.preferred_username
+    // });
 
     // 1. Inicjalizacja po zalogowaniu + sync użytkownika
     useEffect(() => {
@@ -224,9 +225,9 @@ export default function App() {
         setViewMode('dms');
     };
 
-    const handleStartCall = (friendId: string, friendUsername: string) => {
-        webrtcCall.startCall(friendId, friendUsername);
-    };
+    // const handleStartCall = (friendId: string, friendUsername: string) => {
+    //     // webrtcCall.startCall(friendId, friendUsername); // DISABLED
+    // };
 
     return (
         <div className="app-layout">
@@ -334,7 +335,6 @@ export default function App() {
                     currentUserId={auth.user?.profile.sub || ''}
                     currentUsername={auth.user?.profile.preferred_username || ''}
                     onStartDM={handleStartDM}
-                    onStartCall={handleStartCall}
                 />
             )}
 
@@ -343,7 +343,6 @@ export default function App() {
                     currentUserId={auth.user?.profile.sub || ''}
                     currentUsername={auth.user?.profile.preferred_username || ''}
                     userToken={auth.user?.access_token}
-                    onStartCall={handleStartCall}
                     onBack={() => setViewMode('servers')}
                 />
             )}
@@ -494,15 +493,15 @@ export default function App() {
                 </div>
             )}
 
-            {/* Voice Call Modal */}
-            <VoiceCallModal
+            {/* Voice Call Modal - DISABLED until call notifications are ready */}
+            {/* <VoiceCallModal
                 status={webrtcCall.callStatus}
                 remotePeer={webrtcCall.remotePeer}
                 remoteStream={webrtcCall.remoteStream}
                 onAnswer={webrtcCall.answerCall}
                 onReject={webrtcCall.rejectCall}
                 onEnd={webrtcCall.endCall}
-            />
+            /> */}
 
         </div>
     );
