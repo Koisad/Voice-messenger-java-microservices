@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useSignaling } from './useSignaling';
 
 interface UseWebRTCCallProps {
@@ -25,22 +25,22 @@ export const useWebRTCCall = ({ userToken, currentUserId, currentUsername }: Use
         await pcRef.current.setRemoteDescription(new RTCSessionDescription(offer));
     };
 
-    const onCallAnswered = async (answer: RTCSessionDescriptionInit) => {
+    const onCallAnswered = useCallback(async (answer: RTCSessionDescriptionInit) => {
         if (pcRef.current) {
             await pcRef.current.setRemoteDescription(new RTCSessionDescription(answer));
             setCallStatus('connected');
         }
-    };
+    }, []);
 
-    const onIceCandidate = async (candidate: RTCIceCandidateInit) => {
+    const onIceCandidate = useCallback(async (candidate: RTCIceCandidateInit) => {
         if (pcRef.current) {
             await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate));
         }
-    };
+    }, []);
 
-    const onCallEnded = () => {
+    const onCallEnded = useCallback(() => {
         endCall();
-    };
+    }, []);
 
     const { connected, sendSignal } = useSignaling({
         userToken,
