@@ -107,7 +107,9 @@ export const Friends: React.FC<FriendsProps> = ({ currentUserId, onStartDM, onSt
     const handleRejectRequest = async (request: Friendship) => {
         setLoading(true);
         try {
-            await api.rejectFriendRequest(request.id);
+            // For rejecting a request, the current user is the addressee,
+            // so we need to remove the friendship using the requesterId
+            await api.removeFriend(request.requesterId);
             await loadRequests();
         } catch (err) {
             alert('Nie udało się odrzucić zaproszenia');

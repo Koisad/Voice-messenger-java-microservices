@@ -1,5 +1,6 @@
 package com.voicecommunicator.room.service;
 
+import com.voicecommunicator.room.dto.MemberDTO;
 import com.voicecommunicator.room.exception.MemberNotFoundException;
 import com.voicecommunicator.room.exception.ServerNotFoundException;
 import com.voicecommunicator.room.exception.ServerOwnerException;
@@ -19,6 +20,7 @@ public class ServerService {
 
     private final MemberRepository memberRepository;
     private final ServerRepository serverRepository;
+    private final RoomMemberNotificationService memberNotificationService;
 
     @Transactional
     public Server createServer(String name, String userId, String username) {
@@ -64,6 +66,13 @@ public class ServerService {
         member.setUsername(username);
         member.setRole(Role.MEMBER);
         memberRepository.save(member);
+
+        MemberDTO memberDTO = MemberDTO.builder()
+                .userId(userId)
+                .username(username)
+                .role(Role.MEMBER)
+                .build();
+        memberNotificationService.notifyMemberJoined(serverId, memberDTO);
     }
 
     public void leaveServer(String serverId, String userId) {
@@ -74,7 +83,10 @@ public class ServerService {
             throw new ServerOwnerException(userId);
         }
 
+        String username = member.getUsername();
         memberRepository.deleteByServerIdAndUserId(serverId, userId);
+
+        memberNotificationService.notifyMemberLeft(serverId, userId, username);
     }
 
     public List<com.voicecommunicator.room.dto.MemberDTO> getServerMembers(String serverId) {
