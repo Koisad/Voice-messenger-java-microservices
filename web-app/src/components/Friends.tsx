@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import type { Friendship, FriendUser } from '../types';
-import { UserPlus, UserCheck, UserX, MessageSquare, Trash2, Search, Loader } from 'lucide-react';
+import { UserPlus, UserCheck, UserX, MessageSquare, Trash2, Search, Loader, Phone } from 'lucide-react';
 import './Friends.css';
 
 interface FriendsProps {
@@ -9,9 +9,10 @@ interface FriendsProps {
     currentUsername: string;
     onStartDM: (friendId: string, friendUsername: string) => void;
     onStartCall?: (friendId: string, friendUsername: string) => void;
+    notificationTrigger?: number;
 }
 
-export const Friends: React.FC<FriendsProps> = ({ currentUserId, onStartDM /*, onStartCall */ }) => {
+export const Friends: React.FC<FriendsProps> = ({ currentUserId, onStartDM, onStartCall, notificationTrigger }) => {
     const [activeTab, setActiveTab] = useState<'friends' | 'requests'>('friends');
     const [friends, setFriends] = useState<Friendship[]>([]);
     const [requests, setRequests] = useState<Friendship[]>([]);
@@ -24,6 +25,14 @@ export const Friends: React.FC<FriendsProps> = ({ currentUserId, onStartDM /*, o
         loadFriends();
         loadRequests();
     }, []);
+
+    // Refresh when notification is received
+    useEffect(() => {
+        if (notificationTrigger !== undefined && notificationTrigger > 0) {
+            loadFriends();
+            loadRequests();
+        }
+    }, [notificationTrigger]);
 
     const loadFriends = async () => {
         try {
@@ -98,7 +107,9 @@ export const Friends: React.FC<FriendsProps> = ({ currentUserId, onStartDM /*, o
     const handleRejectRequest = async (request: Friendship) => {
         setLoading(true);
         try {
-            await api.rejectFriendRequest(request.id);
+            // For rejecting a request, the current user is the addressee,
+            // so we need to remove the friendship using the requesterId
+            await api.removeFriend(request.requesterId);
             await loadRequests();
         } catch (err) {
             alert('Nie udało się odrzucić zaproszenia');
@@ -206,14 +217,15 @@ export const Friends: React.FC<FriendsProps> = ({ currentUserId, onStartDM /*, o
                                     <div className="message-avatar" />
                                     <span className="friend-name">{friend.username}</span>
                                     <div className="friend-actions">
-                                        {/* Call button disabled until WebRTC is ready */}
-                                        {/* <button
-                                            className="btn-icon"
-                                            onClick={() => onStartCall(friend.id, friend.username)}
-                                            title="Zadzwoń"
-                                        >
-                                            <Phone size={18} />
-                                        </button> */}
+                                        {onStartCall && (
+                                            <button
+                                                className="btn-icon"
+                                                onClick={() => onStartCall(friend.id, friend.username)}
+                                                title="Zadzwoń"
+                                            >
+                                                <Phone size={18} />
+                                            </button>
+                                        )}
                                         <button
                                             className="btn-icon"
                                             onClick={() => onStartDM(friend.id, friend.username)}

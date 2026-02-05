@@ -13,6 +13,7 @@ import java.util.List;
 public class FriendshipService {
 
     private final FriendshipRepository friendshipRepository;
+    private final RoomNotificationService roomNotificationService;
 
     public void sendFriendshipRequest(String requesterId, String requesterUsername, String addresseeId, String addresseeUsername) {
         if (requesterId.equals(addresseeId)) {
@@ -32,6 +33,7 @@ public class FriendshipService {
                 .build();
 
         friendshipRepository.save(friendship);
+        roomNotificationService.notifyFriendRequest(requesterId, requesterUsername, addresseeId);
     }
 
     public void acceptFriendshipRequest(String addresseeId, String friendshipId) {
@@ -43,6 +45,12 @@ public class FriendshipService {
 
         friendship.setStatus(FriendshipStatus.FRIENDS);
         friendshipRepository.save(friendship);
+
+        roomNotificationService.notifyFriendAccepted(
+                friendship.getAddresseeId(),
+                friendship.getAddresseeUsername(),
+                friendship.getRequesterId()
+        );
     }
 
     public List<Friendship> getFriendshipRequests(String addresseeId) {
@@ -58,5 +66,8 @@ public class FriendshipService {
                 .orElseThrow(() -> new IllegalArgumentException("Friendship not found"));
 
         friendshipRepository.delete(friendship);
+
+        roomNotificationService.notifyFriendRemoved(user1Id, user2Id);
+        roomNotificationService.notifyFriendRemoved(user2Id, user1Id);
     }
 }

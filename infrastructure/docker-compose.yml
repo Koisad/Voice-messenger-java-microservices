@@ -69,12 +69,35 @@ services:
     networks:
       - voice-network
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"             # AMQP
+      - "61613:61613"           # STOMP (Java - Front)
+      - "127.0.0.1:15672:15672" # GUI
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    command: /bin/sh -c "rabbitmq-plugins enable --offline rabbitmq_stomp rabbitmq_management && rabbitmq-server"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - voice-network
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   auth_db_data:
   chat_ai_db_data:
   analytics_db_data:
   room_db_data:
   redis_data:
+  rabbitmq_data:
 
 networks:
   voice-network:

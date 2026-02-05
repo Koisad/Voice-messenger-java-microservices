@@ -7,6 +7,7 @@ interface VoiceCallModalProps {
     status: CallStatus;
     remotePeer: { id: string; username: string } | null;
     remoteStream: MediaStream | null;
+    localStream: MediaStream | null;
     onAnswer?: () => void;
     onReject?: () => void;
     onEnd: () => void;
@@ -16,10 +17,13 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({
     status,
     remotePeer,
     remoteStream,
+    localStream,
     onAnswer,
     onReject,
     onEnd
 }) => {
+    console.log('[VoiceCallModal] Render with status:', status);
+
     const [muted, setMuted] = React.useState(false);
     const [callDuration, setCallDuration] = React.useState(0);
     const audioRef = useRef<HTMLAudioElement>(null);
@@ -28,6 +32,10 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({
     useEffect(() => {
         if (remoteStream && audioRef.current) {
             audioRef.current.srcObject = remoteStream;
+            // Explicitly attempt to play
+            audioRef.current.play().catch(err => {
+                console.error('[VoiceCallModal] Failed to play audio:', err);
+            });
         }
     }, [remoteStream]);
 
@@ -58,8 +66,13 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({
     };
 
     const toggleMute = () => {
-        setMuted(!muted);
-        // TODO: Implement actual muting of local stream
+        if (localStream) {
+            const audioTrack = localStream.getAudioTracks()[0];
+            if (audioTrack) {
+                audioTrack.enabled = !audioTrack.enabled;
+                setMuted(!audioTrack.enabled);
+            }
+        }
     };
 
     if (status === 'idle') return null;

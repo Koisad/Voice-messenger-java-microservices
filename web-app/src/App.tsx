@@ -7,10 +7,12 @@ import type { Server, Message, MemberDTO } from './types';
 import './App.css';
 import { Hash, Volume2, Plus, LogOut, Copy, Users, MessageCircle } from 'lucide-react';
 import { useChatSocket } from './hooks/useChatSocket';
-// import { useWebRTCCall } from './hooks/useWebRTCCall';
+import { useWebRTCCall } from './hooks/useWebRTCCall';
+import { useServerNotifications } from './hooks/useServerNotifications';
+import { useUserNotifications } from './hooks/useUserNotifications';
 import { Friends } from './components/Friends';
 import { DirectMessages } from './components/DirectMessages';
-// import { VoiceCallModal } from './components/VoiceCallModal';
+import { VoiceCallModal } from './components/VoiceCallModal';
 
 export default function App() {
     const auth = useAuth();
@@ -53,12 +55,55 @@ export default function App() {
     const chatChannel = selectedServer?.channels.find(c => c.id === chatChannelId);
 
     // --- WEBRTC CALL ---
-    // WebRTC calling - DISABLED until call notifications are needed
-    // const webrtcCall = useWebRTCCall({
-    //     userToken: auth.accessToken,
-    //     currentUserId: auth.user?.sub,
-    //     currentUsername: auth.user?.preferred_username
-    // });
+    const webrtcCall = useWebRTCCall({
+        userToken: auth.user?.access_token,
+        currentUserId: auth.user?.profile.sub,
+        currentUsername: auth.user?.profile.preferred_username
+    });
+
+    // --- SERVER MEMBER NOTIFICATIONS ---
+    useServerNotifications({
+        serverId: selectedServerId,
+        userToken: auth.user?.access_token,
+        onMemberJoined: (member) => {
+            console.log('[App] Member joined:', member);
+            if (selectedServerId) {
+                api.getServerMembers(selectedServerId).then(setMembers).catch(console.error);
+            }
+        },
+        onMemberLeft: (data) => {
+            console.log('[App] Member left:', data);
+            if (selectedServerId) {
+                api.getServerMembers(selectedServerId).then(setMembers).catch(console.error);
+            }
+        }
+    });
+
+    // --- USER NOTIFICATIONS (Friends & Calls) ---
+    const [friendNotificationTrigger, setFriendNotificationTrigger] = useState(0);
+
+    useUserNotifications({
+        userId: auth.user?.profile.sub || null,
+        userToken: auth.user?.access_token,
+        onFriendRequest: (data) => {
+            console.log('[App] Friend request received:', data);
+            setFriendNotificationTrigger(prev => prev + 1);
+        },
+        onFriendAccepted: (data) => {
+            console.log('[App] Friend accepted:', data);
+            setFriendNotificationTrigger(prev => prev + 1);
+        },
+        onFriendRemoved: (data) => {
+            console.log('[App] Friend removed:', data);
+            setFriendNotificationTrigger(prev => prev + 1);
+        },
+        onIncomingCall: (data) => {
+            console.log('[App] Incoming call:', data);
+            // Trigger incoming call in WebRTC
+            // Note: The signaling service handles the WebRTC offer separately via WebSocket
+            // This notification is just to alert the user of an incoming call
+        }
+    });
 
     // 1. Inicjalizacja po zalogowaniu + sync użytkownika
     useEffect(() => {
@@ -225,9 +270,9 @@ export default function App() {
         setViewMode('dms');
     };
 
-    // const handleStartCall = (friendId: string, friendUsername: string) => {
-    //     // webrtcCall.startCall(friendId, friendUsername); // DISABLED
-    // };
+    const handleStartCall = (friendId: string, friendUsername: string) => {
+        webrtcCall.startCall(friendId, friendUsername);
+    };
 
     return (
         <div className="app-layout">
@@ -335,6 +380,8 @@ export default function App() {
                     currentUserId={auth.user?.profile.sub || ''}
                     currentUsername={auth.user?.profile.preferred_username || ''}
                     onStartDM={handleStartDM}
+                    onStartCall={handleStartCall}
+                    notificationTrigger={friendNotificationTrigger}
                 />
             )}
 
@@ -493,15 +540,16 @@ export default function App() {
                 </div>
             )}
 
-            {/* Voice Call Modal - DISABLED until call notifications are ready */}
-            {/* <VoiceCallModal
+            {/* Voice Call Modal */}
+            <VoiceCallModal
                 status={webrtcCall.callStatus}
                 remotePeer={webrtcCall.remotePeer}
                 remoteStream={webrtcCall.remoteStream}
+                localStream={webrtcCall.localStream}
                 onAnswer={webrtcCall.answerCall}
                 onReject={webrtcCall.rejectCall}
                 onEnd={webrtcCall.endCall}
-            /> */}
+            />
 
         </div>
     );

@@ -2,6 +2,7 @@ package com.voicecommunicator.chat.config;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -33,17 +34,38 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final JwtDecoder jwtDecoder;
 
+    @Value("${INFRA_HOST}")
+    private String relayHost;
+
+    @Value("${STOMP_RELAY_PORT:61613}")
+    private int relayPort;
+
+    @Value("${STOMP_RELAY_LOGIN}")
+    private String relayLogin;
+
+    @Value("${STOMP_RELAY_PASSCODE}")
+    private String relayPasscode;
+
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("https://voicemessenger.mywire.org", "http://localhost:3000")
+                .setAllowedOriginPatterns("https://voicemessenger.mywire.org")
                 .withSockJS();
     }
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
         registry.setApplicationDestinationPrefixes("/app");
-        registry.enableSimpleBroker("/topic");
+
+        log.info("Connecting to RabbitMQ Relay at {}:{}", relayHost, relayPort);
+
+        registry.enableStompBrokerRelay("/topic", "/queue", "/exchange")
+                .setRelayHost(relayHost)
+                .setRelayPort(relayPort)
+                .setClientLogin(relayLogin)
+                .setClientPasscode(relayPasscode)
+                .setSystemLogin(relayLogin)
+                .setSystemPasscode(relayPasscode);
     }
 
     @Override

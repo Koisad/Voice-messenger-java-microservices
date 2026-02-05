@@ -117,14 +117,6 @@ export const api = {
         if (!res.ok) throw new Error('Failed to accept friend request');
     },
 
-    rejectFriendRequest: async (requestId: string): Promise<void> => {
-        const res = await fetch(`${BASE_URL}/friendships/${requestId}`, {
-            method: 'DELETE',
-            headers: getHeaders()
-        });
-        if (!res.ok) throw new Error('Failed to reject friend request');
-    },
-
     getFriendRequests: async (): Promise<Friendship[]> => {
         const res = await fetch(`${BASE_URL}/friendships/requests`, {
             headers: getHeaders()

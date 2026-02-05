@@ -23,7 +23,21 @@ export const useSignaling = ({
     const wsRef = useRef<WebSocket | null>(null);
     const [connected, setConnected] = useState(false);
 
+    // Use refs for callbacks to prevent WebSocket reconnection when they change
+    const onIncomingCallRef = useRef(onIncomingCall);
+    const onCallAnsweredRef = useRef(onCallAnswered);
+    const onIceCandidateRef = useRef(onIceCandidate);
+    const onCallEndedRef = useRef(onCallEnded);
+
     useEffect(() => {
+        onIncomingCallRef.current = onIncomingCall;
+        onCallAnsweredRef.current = onCallAnswered;
+        onIceCandidateRef.current = onIceCandidate;
+        onCallEndedRef.current = onCallEnded;
+    }, [onIncomingCall, onCallAnswered, onIceCandidate, onCallEnded]);
+
+    useEffect(() => {
+        if (!userToken || !currentUserId) return;
         if (!userToken || !currentUserId) return;
 
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -54,23 +68,27 @@ export const useSignaling = ({
 
                 switch (message.type) {
                     case 'offer':
-                        if (onIncomingCall && message.data) {
-                            onIncomingCall(message.sender, message.senderUsername || message.sender, message.data);
+                        console.log('[Signaling] Processing offer from:', message.sender, 'Username:', message.senderUsername);
+                        if (onIncomingCallRef.current && message.data) {
+                            console.log('[Signaling] Calling onIncomingCall callback');
+                            onIncomingCallRef.current(message.sender, message.senderUsername || message.sender, message.data);
+                        } else {
+                            console.warn('[Signaling] onIncomingCall callback not defined or no message data');
                         }
                         break;
                     case 'answer':
-                        if (onCallAnswered && message.data) {
-                            onCallAnswered(message.data);
+                        if (onCallAnsweredRef.current && message.data) {
+                            onCallAnsweredRef.current(message.data);
                         }
                         break;
                     case 'ice-candidate':
-                        if (onIceCandidate && message.data) {
-                            onIceCandidate(message.data);
+                        if (onIceCandidateRef.current && message.data) {
+                            onIceCandidateRef.current(message.data);
                         }
                         break;
                     case 'call-ended':
-                        if (onCallEnded) {
-                            onCallEnded();
+                        if (onCallEndedRef.current) {
+                            onCallEndedRef.current();
                         }
                         break;
                 }
@@ -84,7 +102,7 @@ export const useSignaling = ({
                 ws.close();
             }
         };
-    }, [userToken, currentUserId, onIncomingCall, onCallAnswered, onIceCandidate, onCallEnded]);
+    }, [userToken, currentUserId]); // Removed callbacks from dependencies
 
     const sendSignal = useCallback((message: Omit<SignalMessage, 'sender'>) => {
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {

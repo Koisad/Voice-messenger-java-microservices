@@ -1,5 +1,6 @@
 rootProject.name = "Voice-messenger"
 
+include("common")
 include("services:gateway-service")
 //include("services:auth-service")
 include("services:analytics-service")

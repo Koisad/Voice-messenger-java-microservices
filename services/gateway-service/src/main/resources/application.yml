@@ -30,7 +30,7 @@ spring:
         - id: signaling-route
           uri: ${SIGNALING_URI}
           predicates:
-            - Path=/ws/signal/**
+            - Path=/ws/signal/**, /api/calls/**
         - id: chat-route
           uri: ${CHAT_URI}
           predicates:
