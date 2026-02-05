@@ -62,7 +62,9 @@ export default function App() {
     // 1. Inicjalizacja po zalogowaniu + sync użytkownika
     useEffect(() => {
         if (auth.isAuthenticated) {
-            api.syncUser().catch(console.error); // Sync użytkownika do AppUser
+            api.syncUser()
+                .then(() => console.log('[AppUser] Sync successful'))
+                .catch(err => console.error('[AppUser] Sync failed:', err));
             loadServers();
             window.history.replaceState({}, document.title, window.location.pathname);
         }
@@ -277,7 +279,7 @@ export default function App() {
                 </div>
             </nav>
 
-            {selectedServer ? (
+            {selectedServer && viewMode === 'servers' ? (
                 <div className="channel-sidebar">
                     <header className="server-header">
                         <span title={selectedServer.name}>
@@ -443,7 +445,7 @@ export default function App() {
                 )}
             </main>
 
-            {selectedServer && !isVoiceActive && (
+            {selectedServer && !isVoiceActive && viewMode === 'servers' && (
                 <aside className="members-sidebar">
                     <h3>CZŁONKOWIE — {members.length}</h3>
                     {members.map((m, i) => (
