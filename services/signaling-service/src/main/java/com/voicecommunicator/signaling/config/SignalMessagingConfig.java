@@ -29,5 +29,8 @@ public class SignalMessagingConfig implements WebSocketMessageBrokerConfigurer {
     }
 
     @Override
-    public void registerStompEndpoints(StompEndpointRegistry registry) {}
+    public void registerStompEndpoints(StompEndpointRegistry registry) {
+        registry.addEndpoint("/ws-signaling-relay")
+                .setAllowedOriginPatterns("*");
+    }
 }
