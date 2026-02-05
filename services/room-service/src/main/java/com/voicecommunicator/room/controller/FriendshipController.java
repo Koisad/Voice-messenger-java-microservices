@@ -49,4 +49,14 @@ public class FriendshipController {
         return ResponseEntity.ok(friendshipService.getFriends(userId));
     }
 
+    @DeleteMapping("/{friendId}")
+    public ResponseEntity<Void> deleteFriendship(@PathVariable String friendId,
+                                                 @AuthenticationPrincipal Jwt jwt) {
+
+        String userId = jwt.getSubject();
+        friendshipService.removeFriendship(userId, friendId);
+
+        return ResponseEntity.ok().build();
+    }
+
 }

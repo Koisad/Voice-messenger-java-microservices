@@ -52,4 +52,11 @@ public class FriendshipService {
     public List<Friendship> getFriends(String userId) {
         return friendshipRepository.findAllAcceptedByUserId(userId);
     }
+
+    public void removeFriendship(String user1Id, String user2Id) {
+        Friendship friendship = friendshipRepository.findFriendship(user1Id, user2Id)
+                .orElseThrow(() -> new IllegalArgumentException("Friendship not found"));
+
+        friendshipRepository.delete(friendship);
+    }
 }
