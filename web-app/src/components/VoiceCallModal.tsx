@@ -22,6 +22,8 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({
     onReject,
     onEnd
 }) => {
+    console.log('[VoiceCallModal] Render with status:', status);
+
     const [muted, setMuted] = React.useState(false);
     const [callDuration, setCallDuration] = React.useState(0);
     const audioRef = useRef<HTMLAudioElement>(null);
