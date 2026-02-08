@@ -12,7 +12,6 @@ import org.springframework.web.client.RestClient;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @Service
@@ -46,62 +45,39 @@ public class AnalysisService {
         log.info("AI: Analysis result sent ({})", isToxic);
     }
 
-    private boolean callAICheck(String textToAnalyze) {
+    private boolean callAICheck(String text) {
         try {
-            String prompt = String.format("""
-                [INST] You are a content moderation system.
-                Analyze this text: "%s"
-                
-                Is it toxic, hate speech, or profanity?
-                Return ONLY a JSON object: {"isToxic": true} or {"isToxic": false}
-                [/INST]
-                """, textToAnalyze.replace("\"", "'").replace("\n", " "));
-
-            Map<String, Object> requestBody = Map.of(
-                    "inputs", prompt,
-                    "parameters", Map.of(
-                            "return_full_text", false,
-                            "max_new_tokens", 50,
-                            "temperature", 0.1
-                    )
-            );
-
             RestClient restClient = RestClient.create();
 
             String response = restClient.post()
-                    .uri(aiUrl.trim())
-                    .header("Authorization", "Bearer " + aiApiKey.trim())
+                    .uri(aiUrl)
+                    .header("Authorization", "Bearer " + aiApiKey)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(requestBody)
+                    .body(Map.of("inputs", text))
                     .retrieve()
                     .body(String.class);
 
-            log.info("HF Response Raw: {}", response);
+            JsonNode root = objectMapper.readTree(response);
+            JsonNode labels = root.get(0);
 
-            JsonNode rootArray = objectMapper.readTree(response);
+            if (labels.isArray()) {
+                for (JsonNode prediction : labels) {
+                    String label = prediction.path("label").asText();
+                    double score = prediction.path("score").asDouble();
 
-            if (rootArray.isArray() && !rootArray.isEmpty()) {
-                String generatedText = rootArray.get(0).path("generated_text").asText();
-
-                String cleanJson = generatedText
-                        .replace("```json", "")
-                        .replace("```", "")
-                        .trim();
-
-                JsonNode jsonResponse = objectMapper.readTree(cleanJson);
-                return jsonResponse.path("isToxic").asBoolean(false);
+                    if (label.equals("toxic") && score > 0.7) return true;
+                    if (label.equals("severe_toxic") && score > 0.5) return true;
+                    if (label.equals("insult") && score > 0.7) return true;
+                    if (label.equals("threat") && score > 0.6) return true;
+                    if (label.equals("identity_hate") && score > 0.6) return true;
+                }
             }
 
             return false;
 
         } catch (Exception e) {
-            log.error("Hugging Face connection error: {}", e.getMessage());
-
-            if (e.getMessage().contains("503")) {
-                log.warn("Model is loading");
-            }
+            log.error("HF error: {}", e.getMessage());
             return false;
         }
     }
-
 }
