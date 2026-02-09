@@ -285,10 +285,9 @@ export default function App() {
         return <LoginPage />;
     }
 
-    const handleLogout = () => {
-        auth.signoutRedirect({
-            post_logout_redirect_uri: window.location.origin,
-        });
+    const handleLogout = async () => {
+        await auth.removeUser();
+        sessionStorage.clear();
     };
 
     const handleStartDM = () => {
