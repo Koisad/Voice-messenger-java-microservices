@@ -130,12 +130,18 @@ services:
       args:
         SERVICE_PATH: services/ai-service
     environment:
+      - SPRING_RABBITMQ_HOST=${INFRA_HOST}
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=${RABBITMQ_USER}
+      - SPRING_RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
       - DB_HOST=${INFRA_HOST}
       - MONGO_PORT=${MONGO_PORT_CHAT}
       - MONGO_USER=${MONGO_ROOT_USER}
       - MONGO_PASS=${MONGO_ROOT_PASSWORD}
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=https://auth.voicemessenger.mywire.org/realms/voice-messenger
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://keycloak:9090/realms/voice-messenger/protocol/openid-connect/certs
+      - AI_API_KEY=${AI_API_KEY}
+      - AI_URL=${AI_URL}
     networks:
       - app-net
 

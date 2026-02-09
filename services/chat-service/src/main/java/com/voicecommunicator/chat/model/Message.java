@@ -24,4 +24,5 @@ public class Message {
 
     private LocalDateTime timestamp;
 
+    private boolean isToxic;
 }
