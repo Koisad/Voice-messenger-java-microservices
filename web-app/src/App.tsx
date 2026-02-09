@@ -13,6 +13,7 @@ import { useUserNotifications } from './hooks/useUserNotifications';
 import { Friends } from './components/Friends';
 import { DirectMessages } from './components/DirectMessages';
 import { VoiceCallModal } from './components/VoiceCallModal';
+import { LoginPage } from './components/LoginPage';
 
 export default function App() {
     const auth = useAuth();
@@ -33,6 +34,7 @@ export default function App() {
     const [modalMode, setModalMode] = useState<'CREATE' | 'JOIN'>('CREATE');
     const [inputVal, setInputVal] = useState("");
     const [messageInput, setMessageInput] = useState("");
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
     // --- STAN LIVEKIT (GŁOS) ---
     const [liveKitToken, setLiveKitToken] = useState("");
@@ -281,15 +283,15 @@ export default function App() {
     if (auth.error) return <div className="center-screen">Błąd logowania: {auth.error.message}</div>;
 
     if (!auth.isAuthenticated) {
-        return (
-            <div className="center-screen flex-col">
-                <h1>Voice Messenger</h1>
-                <button className="btn btn-primary" onClick={() => auth.signinRedirect()}>
-                    Zaloguj przez Keycloak
-                </button>
-            </div>
-        );
+        return <LoginPage />;
     }
+
+    const handleLogout = async () => {
+        await auth.removeUser();
+        sessionStorage.clear();
+    };
+
+    const requestLogout = () => setShowLogoutConfirm(true);
 
     const handleStartDM = () => {
         setViewMode('dms');
@@ -345,7 +347,7 @@ export default function App() {
                     <Plus />
                 </div>
 
-                <div className="server-icon logout-icon" onClick={() => auth.signoutRedirect()}>
+                <div className="server-icon logout-icon" onClick={requestLogout}>
                     <LogOut />
                 </div>
             </nav>
@@ -617,6 +619,26 @@ export default function App() {
                 onReject={webrtcCall.rejectCall}
                 onEnd={webrtcCall.endCall}
             />
+
+            {showLogoutConfirm && (
+                <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowLogoutConfirm(false); }}>
+                    <div className="logout-modal">
+                        <div className="logout-modal-icon">
+                            <LogOut size={32} />
+                        </div>
+                        <h2>Wylogować się?</h2>
+                        <p>Czy na pewno chcesz się wylogować z Voice Messenger?</p>
+                        <div className="logout-modal-actions">
+                            <button className="btn logout-modal-cancel" onClick={() => setShowLogoutConfirm(false)}>
+                                Anuluj
+                            </button>
+                            <button className="btn logout-modal-confirm" onClick={handleLogout}>
+                                Wyloguj
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
         </div>
     );

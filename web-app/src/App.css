@@ -500,3 +500,66 @@ label {
     margin-left: 8px;
     margin-top: 4px;
 }
+
+/* LOGOUT CONFIRMATION MODAL */
+.logout-modal {
+    background: var(--bg-primary);
+    border-radius: 12px;
+    padding: 32px;
+    width: 380px;
+    max-width: 90vw;
+    text-align: center;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.logout-modal-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(237, 66, 69, 0.12);
+    color: var(--danger);
+    margin-bottom: 16px;
+}
+
+.logout-modal h2 {
+    margin: 0 0 8px;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.logout-modal p {
+    margin: 0 0 24px;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.logout-modal-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.logout-modal-cancel {
+    flex: 1;
+    background: var(--bg-accent);
+    color: var(--text-primary);
+}
+
+.logout-modal-cancel:hover {
+    background: #4e5058;
+}
+
+.logout-modal-confirm {
+    flex: 1;
+    background: var(--danger);
+    color: white;
+}
+
+.logout-modal-confirm:hover {
+    background: #c03537;
+}
