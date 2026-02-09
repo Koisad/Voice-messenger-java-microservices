@@ -1,11 +1,11 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useAuth } from 'react-oidc-context';
 import { LiveKitRoom, VideoConference } from '@livekit/components-react';
 import '@livekit/components-styles';
 import { api } from './api/client';
 import type { Server, Message, MemberDTO } from './types';
 import './App.css';
-import { Hash, Volume2, Plus, LogOut, Copy, Users, MessageCircle } from 'lucide-react';
+import { Hash, Volume2, Plus, LogOut, Copy, Users, MessageCircle, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { useChatSocket } from './hooks/useChatSocket';
 import { useWebRTCCall } from './hooks/useWebRTCCall';
 import { useServerNotifications } from './hooks/useServerNotifications';
@@ -40,12 +40,36 @@ export default function App() {
     const [isVoiceActive, setIsVoiceActive] = useState(false);
 
     // --- WEBSOCKET CHAT ---
+    // --- TOXIC MESSAGE STATE ---
+    const [revealedToxicIds, setRevealedToxicIds] = useState<Set<string>>(new Set());
+
+    const toggleToxicReveal = (msgId: string) => {
+        setRevealedToxicIds(prev => {
+            const next = new Set(prev);
+            if (next.has(msgId)) next.delete(msgId);
+            else next.add(msgId);
+            return next;
+        });
+    };
+
+    // Helper: backend Java boolean `isToxic` may serialize as `toxic` or `isToxic`
+    const isMessageToxic = (msg: Message): boolean => !!(msg.isToxic || msg.toxic);
+
+    const handleReconnect = useCallback(() => {
+        if (selectedServerId && chatChannelId) {
+            api.getMessages(selectedServerId, chatChannelId)
+                .then(setMessages)
+                .catch(console.error);
+        }
+    }, [selectedServerId, chatChannelId]);
+
     const { socketMessages, sendMessage: sendSocketMessage } = useChatSocket({
         serverId: selectedServerId,
-        channelId: chatChannelId, // Używamy kanału czatu, niekoniecznie wybranego (jeśli to głosowy)
+        channelId: chatChannelId,
         userToken: auth.user?.access_token,
-        currentUserId: auth.user?.profile.sub, // UUID z JWT
-        currentUsername: auth.user?.profile.preferred_username // Username do wysłania
+        currentUserId: auth.user?.profile.sub,
+        currentUsername: auth.user?.profile.preferred_username,
+        onReconnect: handleReconnect
     });
 
     const bottomRef = useRef<HTMLDivElement>(null);
@@ -152,12 +176,13 @@ export default function App() {
 
 
     // 3. Scalanie REST history + WebSocket messages
+    // Later messages (from WS) overwrite older ones (from REST) — this propagates isToxic updates
     const displayMessages = React.useMemo(() => {
-        const allMessages = [...messages, ...socketMessages];
-        const uniqueMap = new Map();
-        allMessages.forEach(msg => {
-            uniqueMap.set(msg.id, msg);
-        });
+        const uniqueMap = new Map<string, Message>();
+        // REST messages first
+        messages.forEach(msg => uniqueMap.set(msg.id, msg));
+        // WS messages overwrite — carries updated isToxic flags
+        socketMessages.forEach(msg => uniqueMap.set(msg.id, msg));
         return Array.from(uniqueMap.values()).sort((a, b) =>
             new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
         );
@@ -423,20 +448,41 @@ export default function App() {
                             </header>
 
                             <div className="messages-list">
-                                {displayMessages.map((msg) => (
-                                    <div key={msg.id} className="message-item">
-                                        <div className="message-avatar" />
-                                        <div className="message-content">
-                                            <div className="message-header">
-                                                <span className="author">
-                                                    {msg.senderUsername || (msg.senderId.length > 20 ? msg.senderId.substring(0, 8) + '...' : msg.senderId)}
-                                                </span>
-                                                <span className="time">{new Date(msg.timestamp).toLocaleTimeString()}</span>
+                                {displayMessages.map((msg) => {
+                                    const toxic = isMessageToxic(msg);
+                                    const revealed = revealedToxicIds.has(msg.id);
+                                    return (
+                                        <div key={msg.id} className={`message-item ${toxic ? 'message-toxic' : ''}`}>
+                                            <div className="message-avatar" />
+                                            <div className="message-content">
+                                                <div className="message-header">
+                                                    <span className="author">
+                                                        {msg.senderUsername || (msg.senderId.length > 20 ? msg.senderId.substring(0, 8) + '...' : msg.senderId)}
+                                                    </span>
+                                                    <span className="time">{new Date(msg.timestamp).toLocaleTimeString()}</span>
+                                                    {toxic && <span className="toxic-badge"><AlertTriangle size={14} /> Potencjalnie wulgarna</span>}
+                                                </div>
+                                                {toxic && !revealed ? (
+                                                    <div className="toxic-hidden-content">
+                                                        <span>Treść ukryta — wykryto potencjalnie wulgarną treść</span>
+                                                        <button className="toxic-reveal-btn" onClick={() => toggleToxicReveal(msg.id)}>
+                                                            <Eye size={14} /> Pokaż treść
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="text">
+                                                        {msg.content}
+                                                        {toxic && revealed && (
+                                                            <button className="toxic-reveal-btn toxic-hide-btn" onClick={() => toggleToxicReveal(msg.id)}>
+                                                                <EyeOff size={14} /> Ukryj
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
-                                            <div className="text">{msg.content}</div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                                 <div ref={bottomRef} />
                             </div>
 
@@ -460,20 +506,41 @@ export default function App() {
                         </header>
 
                         <div className="messages-list">
-                            {displayMessages.map((msg) => (
-                                <div key={msg.id} className="message-item">
-                                    <div className="message-avatar" />
-                                    <div className="message-content">
-                                        <div className="message-header">
-                                            <span className="author">
-                                                {msg.senderUsername || (msg.senderId.length > 20 ? msg.senderId.substring(0, 8) + '...' : msg.senderId)}
-                                            </span>
-                                            <span className="time">{new Date(msg.timestamp).toLocaleTimeString()}</span>
+                            {displayMessages.map((msg) => {
+                                const toxic = isMessageToxic(msg);
+                                const revealed = revealedToxicIds.has(msg.id);
+                                return (
+                                    <div key={msg.id} className={`message-item ${toxic ? 'message-toxic' : ''}`}>
+                                        <div className="message-avatar" />
+                                        <div className="message-content">
+                                            <div className="message-header">
+                                                <span className="author">
+                                                    {msg.senderUsername || (msg.senderId.length > 20 ? msg.senderId.substring(0, 8) + '...' : msg.senderId)}
+                                                </span>
+                                                <span className="time">{new Date(msg.timestamp).toLocaleTimeString()}</span>
+                                                {toxic && <span className="toxic-badge"><AlertTriangle size={14} /> Potencjalnie wulgarna</span>}
+                                            </div>
+                                            {toxic && !revealed ? (
+                                                <div className="toxic-hidden-content">
+                                                    <span>Treść ukryta — wykryto potencjalnie wulgarną treść</span>
+                                                    <button className="toxic-reveal-btn" onClick={() => toggleToxicReveal(msg.id)}>
+                                                        <Eye size={14} /> Pokaż treść
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="text">
+                                                    {msg.content}
+                                                    {toxic && revealed && (
+                                                        <button className="toxic-reveal-btn toxic-hide-btn" onClick={() => toggleToxicReveal(msg.id)}>
+                                                            <EyeOff size={14} /> Ukryj
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
-                                        <div className="text">{msg.content}</div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                             <div ref={bottomRef} />
                         </div>
 

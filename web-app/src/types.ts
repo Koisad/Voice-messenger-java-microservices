@@ -24,6 +24,8 @@ export interface Message {
     serverId: string;
     channelId: string;
     timestamp: string;
+    isToxic?: boolean; // AI toxicity detection flag (from backend, field name: toxic)
+    toxic?: boolean; // Alternate field name from Java boolean `isToxic` serialization
 }
 
 export interface CreateServerRequest {
