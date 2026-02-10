@@ -44,6 +44,10 @@ export default function App() {
     // --- KICK MEMBER ---
     const [kickTarget, setKickTarget] = useState<{ userId: string; username: string } | null>(null);
 
+    // --- CONFIRM MODALS ---
+    const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+    const [channelToDelete, setChannelToDelete] = useState<{ id: string; name: string } | null>(null);
+
     // --- STAN LIVEKIT (GŁOS) ---
     const [liveKitToken, setLiveKitToken] = useState("");
     const [liveKitUrl, setLiveKitUrl] = useState("");
@@ -318,18 +322,20 @@ export default function App() {
         }
     };
 
-    const handleRemoveChannel = async (channelId: string) => {
-        if (!selectedServerId) return;
+    const handleRemoveChannel = async () => {
+        if (!selectedServerId || !channelToDelete) return;
         try {
-            await api.removeChannel(selectedServerId, channelId);
+            await api.removeChannel(selectedServerId, channelToDelete.id);
             const updatedServers = await api.getServers();
             setServers(updatedServers);
-            if (selectedChannelId === channelId) {
+            if (selectedChannelId === channelToDelete.id) {
                 const updated = updatedServers.find(s => s.id === selectedServerId);
                 if (updated) selectDefaultChannels(updated);
             }
+            setChannelToDelete(null);
         } catch (err) {
             console.error('Failed to remove channel:', err);
+            setChannelToDelete(null);
         }
     };
 
@@ -341,8 +347,10 @@ export default function App() {
             setSelectedServerId(null);
             setSelectedChannelId(null);
             setChatChannelId(null);
+            setShowLeaveConfirm(false);
         } catch (err) {
             console.error('Failed to leave server:', err);
+            setShowLeaveConfirm(false);
         }
     };
 
@@ -433,15 +441,6 @@ export default function App() {
                             >
                                 <Copy size={18} />
                             </div>
-                            {!isServerOwner && (
-                                <div
-                                    className="icon-btn icon-btn-danger"
-                                    onClick={handleLeaveServer}
-                                    title="Opuść serwer"
-                                >
-                                    <DoorOpen size={18} />
-                                </div>
-                            )}
                         </div>
                     </header>
 
@@ -502,7 +501,7 @@ export default function App() {
                                 {isServerOwner && (
                                     <button
                                         className="channel-delete-btn"
-                                        onClick={(e) => { e.stopPropagation(); handleRemoveChannel(channel.id); }}
+                                        onClick={(e) => { e.stopPropagation(); setChannelToDelete({ id: channel.id, name: channel.name }); }}
                                         title="Usuń kanał"
                                     >
                                         <Trash2 size={14} />
@@ -511,6 +510,12 @@ export default function App() {
                             </div>
                         ))}
                     </div>
+
+                    {!isServerOwner && (
+                        <button className="leave-server-btn" onClick={() => setShowLeaveConfirm(true)}>
+                            <DoorOpen size={16} /> Opuść serwer
+                        </button>
+                    )}
 
                     <div className="user-bar">
                         <div className="username">{auth.user?.profile.preferred_username}</div>
@@ -790,6 +795,46 @@ export default function App() {
                             </button>
                             <button className="btn logout-modal-confirm" onClick={handleKickMember}>
                                 Wyrzuć
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showLeaveConfirm && (
+                <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowLeaveConfirm(false); }}>
+                    <div className="logout-modal">
+                        <div className="logout-modal-icon" style={{ background: 'rgba(237, 66, 69, 0.12)' }}>
+                            <DoorOpen size={32} />
+                        </div>
+                        <h2>Opuścić serwer?</h2>
+                        <p>Czy na pewno chcesz opuścić serwer <strong>{selectedServer?.name}</strong>?</p>
+                        <div className="logout-modal-actions">
+                            <button className="btn logout-modal-cancel" onClick={() => setShowLeaveConfirm(false)}>
+                                Anuluj
+                            </button>
+                            <button className="btn logout-modal-confirm" onClick={handleLeaveServer}>
+                                Opuść
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {channelToDelete && (
+                <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setChannelToDelete(null); }}>
+                    <div className="logout-modal">
+                        <div className="logout-modal-icon" style={{ background: 'rgba(237, 66, 69, 0.12)' }}>
+                            <Trash2 size={32} />
+                        </div>
+                        <h2>Usunąć kanał?</h2>
+                        <p>Czy na pewno chcesz usunąć kanał <strong>#{channelToDelete.name}</strong>? Tej operacji nie można cofnąć.</p>
+                        <div className="logout-modal-actions">
+                            <button className="btn logout-modal-cancel" onClick={() => setChannelToDelete(null)}>
+                                Anuluj
+                            </button>
+                            <button className="btn logout-modal-confirm" onClick={handleRemoveChannel}>
+                                Usuń
                             </button>
                         </div>
                     </div>

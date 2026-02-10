@@ -704,6 +704,29 @@ label {
     background: rgba(237, 66, 69, 0.12);
 }
 
+/* LEAVE SERVER BUTTON */
+.leave-server-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: calc(100% - 16px);
+    margin: 8px auto;
+    padding: 8px 12px;
+    background: transparent;
+    border: 1px solid rgba(237, 66, 69, 0.3);
+    color: var(--danger);
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: 0.15s;
+}
+
+.leave-server-btn:hover {
+    background: rgba(237, 66, 69, 0.12);
+    border-color: var(--danger);
+}
+
 /* LOGOUT CONFIRMATION MODAL */
 .logout-modal {
     background: var(--bg-primary);
