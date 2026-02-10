@@ -51,7 +51,11 @@ export const api = {
             method: 'DELETE',
             headers: getHeaders()
         });
-        if (!res.ok) throw new Error('Failed to delete server');
+        if (!res.ok) {
+            const errorText = await res.text().catch(() => '');
+            console.error(`[deleteServer] HTTP ${res.status}: ${errorText}`);
+            throw new Error(`Failed to delete server (${res.status})`);
+        }
     },
 
     getServerMembers: async (serverId: string): Promise<MemberDTO[]> => {

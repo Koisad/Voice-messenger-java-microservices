@@ -370,8 +370,10 @@ export default function App() {
     const handleDeleteServer = async () => {
         if (!selectedServerId || !selectedServer) return;
         if (deleteConfirmInput !== selectedServer.name) return;
+        console.log('[handleDeleteServer] Deleting server:', selectedServerId, selectedServer.name);
         try {
             await api.deleteServer(selectedServerId);
+            console.log('[handleDeleteServer] Server deleted successfully');
             setServers(prev => prev.filter(s => s.id !== selectedServerId));
             setSelectedServerId(null);
             setSelectedChannelId(null);
@@ -380,7 +382,7 @@ export default function App() {
             setDeleteConfirmInput('');
             showToast('Serwer został usunięty', 'info');
         } catch (err) {
-            console.error('Failed to delete server:', err);
+            console.error('[handleDeleteServer] Failed:', err);
             setShowDeleteConfirm(false);
             setDeleteConfirmInput('');
             showToast('Nie udało się usunąć serwera', 'error');
