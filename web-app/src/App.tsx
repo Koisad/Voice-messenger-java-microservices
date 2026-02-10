@@ -308,7 +308,11 @@ export default function App() {
         }
     };
 
-    if (auth.isLoading) return <div className="center-screen">Ładowanie...</div>;
+    if (auth.isLoading) return (
+        <div className="center-screen">
+            <div className="loading-spinner"></div>
+        </div>
+    );
     if (auth.error) return <div className="center-screen">Błąd logowania: {auth.error.message}</div>;
 
     if (!auth.isAuthenticated) {
