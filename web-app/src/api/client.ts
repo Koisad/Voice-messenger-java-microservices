@@ -46,6 +46,14 @@ export const api = {
         if (!res.ok) throw new Error('Failed to leave server');
     },
 
+    deleteServer: async (serverId: string): Promise<void> => {
+        const res = await fetch(`${BASE_URL}/servers/${serverId}`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+        if (!res.ok) throw new Error('Failed to delete server');
+    },
+
     getServerMembers: async (serverId: string): Promise<MemberDTO[]> => {
         const res = await fetch(`${BASE_URL}/servers/${serverId}/members`, { headers: getHeaders() });
         if (!res.ok) throw new Error('Failed to fetch members');
