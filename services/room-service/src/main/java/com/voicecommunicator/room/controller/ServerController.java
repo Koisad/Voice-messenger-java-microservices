@@ -73,4 +73,11 @@ public class ServerController {
         serverService.removeChannel(serverId, channelId, userId);
         return ResponseEntity.ok().build();
     }
+
+    @DeleteMapping("/{serverId}/members/{userIdToRemove}")
+    public ResponseEntity<Void> removeMember(@PathVariable String serverId, @PathVariable String userIdToRemove, @AuthenticationPrincipal Jwt jwt) {
+        String requesterId = jwt.getSubject();
+        serverService.removeMember(serverId, userIdToRemove, requesterId);
+        return ResponseEntity.ok().build();
+    }
 }

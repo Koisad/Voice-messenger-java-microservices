@@ -142,4 +142,24 @@ public class ServerService {
         memberNotificationService.notifyChannelRemoved(serverId, channelId);
     }
 
+    @Transactional
+    public void removeMember(String serverId, String userIdToRemove, String requesterId) {
+        Server server = serverRepository.findById(serverId)
+                .orElseThrow(() -> new ServerNotFoundException(serverId));
+
+        if(!server.getOwnerId().equals(requesterId)) {
+            throw new SecurityException("Only the server owner can remove members");
+        }
+
+        if (userIdToRemove.equals(requesterId)) {
+            throw new IllegalArgumentException("You cannot remove yourself");
+        }
+
+        Member memberToRemove = memberRepository.findByServerIdAndUserId(serverId, userIdToRemove)
+                .orElseThrow(() -> new MemberNotFoundException(userIdToRemove));
+
+        memberRepository.delete(memberToRemove);
+        memberNotificationService.notifyMemberLeft(serverId, userIdToRemove, memberToRemove.getUsername());
+    }
+
 }
