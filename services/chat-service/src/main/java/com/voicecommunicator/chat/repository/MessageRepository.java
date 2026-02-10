@@ -8,4 +8,6 @@ public interface MessageRepository extends MongoRepository<Message, String> {
 
     List<Message> findAllByOrderByTimestampDesc();
     List<Message> findByServerIdAndChannelIdOrderByTimestampAsc(String serverId, String channelId);
+
+    void deleteAllByServerId(String serverId);
 }

@@ -50,6 +50,8 @@ export default function App() {
     // --- CONFIRM MODALS ---
     const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
     const [channelToDelete, setChannelToDelete] = useState<{ id: string; name: string } | null>(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleteConfirmInput, setDeleteConfirmInput] = useState('');
 
     // --- STAN LIVEKIT (GŁOS) ---
     const [liveKitToken, setLiveKitToken] = useState("");
@@ -116,6 +118,16 @@ export default function App() {
             console.log('[App] Member left:', data);
             if (selectedServerId) {
                 api.getServerMembers(selectedServerId).then(setMembers).catch(console.error);
+            }
+        },
+        onServerDeleted: (deletedServerId) => {
+            console.log('[App] Server deleted:', deletedServerId);
+            setServers(prev => prev.filter(s => s.id !== deletedServerId));
+            if (selectedServerId === deletedServerId) {
+                setSelectedServerId(null);
+                setSelectedChannelId(null);
+                setChatChannelId(null);
+                showToast('Serwer został usunięty przez właściciela', 'info');
             }
         }
     });
@@ -365,6 +377,28 @@ export default function App() {
         }
     };
 
+    const handleDeleteServer = async () => {
+        if (!selectedServerId || !selectedServer) return;
+        if (deleteConfirmInput !== selectedServer.name) return;
+        console.log('[handleDeleteServer] Deleting server:', selectedServerId, selectedServer.name);
+        try {
+            await api.deleteServer(selectedServerId);
+            console.log('[handleDeleteServer] Server deleted successfully');
+            setServers(prev => prev.filter(s => s.id !== selectedServerId));
+            setSelectedServerId(null);
+            setSelectedChannelId(null);
+            setChatChannelId(null);
+            setShowDeleteConfirm(false);
+            setDeleteConfirmInput('');
+            showToast('Serwer został usunięty', 'info');
+        } catch (err) {
+            console.error('[handleDeleteServer] Failed:', err);
+            setShowDeleteConfirm(false);
+            setDeleteConfirmInput('');
+            showToast('Nie udało się usunąć serwera', 'error');
+        }
+    };
+
     const handleKickMember = async () => {
         if (!selectedServerId || !kickTarget) return;
         try {
@@ -527,6 +561,12 @@ export default function App() {
                     {!isServerOwner && (
                         <button className="leave-server-btn" onClick={() => setShowLeaveConfirm(true)}>
                             <DoorOpen size={16} /> Opuść serwer
+                        </button>
+                    )}
+
+                    {isServerOwner && (
+                        <button className="delete-server-btn" onClick={() => { setShowDeleteConfirm(true); setDeleteConfirmInput(''); }}>
+                            <Trash2 size={16} /> Usuń serwer
                         </button>
                     )}
 
@@ -828,6 +868,38 @@ export default function App() {
                             </button>
                             <button className="btn logout-modal-confirm" onClick={handleLeaveServer}>
                                 Opuść
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showDeleteConfirm && (
+                <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) { setShowDeleteConfirm(false); setDeleteConfirmInput(''); } }}>
+                    <div className="logout-modal">
+                        <div className="logout-modal-icon" style={{ background: 'rgba(237, 66, 69, 0.12)' }}>
+                            <Trash2 size={32} />
+                        </div>
+                        <h2>Usunąć serwer?</h2>
+                        <p>Tej operacji <strong>nie można cofnąć</strong>. Wszystkie kanały i wiadomości zostaną usunięte.</p>
+                        <p className="delete-confirm-hint">Wpisz <strong>{selectedServer?.name}</strong> aby potwierdzić:</p>
+                        <input
+                            className="input-field delete-confirm-input"
+                            value={deleteConfirmInput}
+                            onChange={(e) => setDeleteConfirmInput(e.target.value)}
+                            placeholder={selectedServer?.name}
+                            autoFocus
+                        />
+                        <div className="logout-modal-actions">
+                            <button className="btn logout-modal-cancel" onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmInput(''); }}>
+                                Anuluj
+                            </button>
+                            <button
+                                className="btn logout-modal-confirm"
+                                onClick={handleDeleteServer}
+                                disabled={deleteConfirmInput !== selectedServer?.name}
+                            >
+                                Usuń
                             </button>
                         </div>
                     </div>

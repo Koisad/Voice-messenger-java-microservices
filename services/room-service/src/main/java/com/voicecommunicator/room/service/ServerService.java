@@ -1,5 +1,6 @@
 package com.voicecommunicator.room.service;
 
+import com.voicecommunicator.common.event.ServerDeletedEvent;
 import com.voicecommunicator.room.dto.MemberDTO;
 import com.voicecommunicator.room.exception.ChannelNotFoundException;
 import com.voicecommunicator.room.exception.MemberNotFoundException;
@@ -9,6 +10,7 @@ import com.voicecommunicator.room.model.*;
 import com.voicecommunicator.room.repository.MemberRepository;
 import com.voicecommunicator.room.repository.ServerRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +24,7 @@ public class ServerService {
     private final MemberRepository memberRepository;
     private final ServerRepository serverRepository;
     private final RoomMemberNotificationService memberNotificationService;
+    private final RabbitTemplate rabbitTemplate;
 
     @Transactional
     public Server createServer(String name, String userId, String username) {
@@ -160,6 +163,25 @@ public class ServerService {
 
         memberRepository.delete(memberToRemove);
         memberNotificationService.notifyMemberLeft(serverId, userIdToRemove, memberToRemove.getUsername());
+    }
+
+    @Transactional
+    public void deleteServer(String serverId, String userId) {
+        Server server = serverRepository.findById(serverId)
+                .orElseThrow(() -> new ServerNotFoundException(serverId));
+
+        if(!server.getOwnerId().equals(userId)) {
+            throw new SecurityException("Only the server owner can delete server");
+        }
+
+        memberNotificationService.notifyServerDeleted(serverId);
+
+        ServerDeletedEvent event = new ServerDeletedEvent(serverId);
+        rabbitTemplate.convertAndSend("internal.exchange", "server.deleted", event);
+
+        memberRepository.deleteByServerId(serverId);
+
+        serverRepository.delete(server);
     }
 
 }

@@ -56,4 +56,14 @@ public class RoomMemberNotificationService {
         messagingTemplate.convertAndSend(destination, event);
         log.info("Send channel removed notification to server: {}", serverId);
     }
+
+    public void notifyServerDeleted(String serverId) {
+        NotificationEvent event = new NotificationEvent(
+                "SERVER_DELETED",
+                Map.of("serverId", serverId)
+        );
+        String destination = "/topic/server." + serverId;
+        messagingTemplate.convertAndSend(destination, event);
+        log.info("Send server deleted notification: {}", serverId);
+    }
 }

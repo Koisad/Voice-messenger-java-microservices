@@ -13,4 +13,5 @@ public interface MemberRepository extends MongoRepository<Member, String> {
 
     boolean existsByServerIdAndUserId(String serverId, String userId);
     void deleteByServerIdAndUserId(String serverId, String userId);
+    void deleteByServerId(String serverId);
 }

@@ -80,4 +80,11 @@ public class ServerController {
         serverService.removeMember(serverId, userIdToRemove, requesterId);
         return ResponseEntity.ok().build();
     }
+
+    @DeleteMapping("/{serverId}")
+    public ResponseEntity<Void> deleteServer(@PathVariable String serverId, @AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        serverService.deleteServer(serverId, userId);
+        return ResponseEntity.ok().build();
+    }
 }

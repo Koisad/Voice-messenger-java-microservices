@@ -727,6 +727,44 @@ label {
     border-color: var(--danger);
 }
 
+.delete-server-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: calc(100% - 16px);
+    margin: 4px auto 8px;
+    padding: 8px 12px;
+    background: transparent;
+    border: 1px solid rgba(237, 66, 69, 0.3);
+    color: var(--danger);
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: 0.15s;
+}
+
+.delete-server-btn:hover {
+    background: rgba(237, 66, 69, 0.12);
+    border-color: var(--danger);
+}
+
+.delete-confirm-hint {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 0 0 8px;
+}
+
+.delete-confirm-input {
+    margin-bottom: 16px;
+    box-sizing: border-box;
+}
+
+.logout-modal-confirm:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 /* LOGOUT CONFIRMATION MODAL */
 .logout-modal {
     background: var(--bg-primary);

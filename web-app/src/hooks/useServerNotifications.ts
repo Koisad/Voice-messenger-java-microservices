@@ -8,25 +8,30 @@ interface UseServerNotificationsProps {
     userToken?: string | null;
     onMemberJoined?: (member: { userId: string; username: string; role: string }) => void;
     onMemberLeft?: (data: { userId: string; username: string }) => void;
+    onServerDeleted?: (serverId: string) => void;
 }
 
 export const useServerNotifications = ({
     serverId,
     userToken,
     onMemberJoined,
-    onMemberLeft
+    onMemberLeft,
+    onServerDeleted
 }: UseServerNotificationsProps) => {
     const clientRef = useRef<Client | null>(null);
     const subscriptionRef = useRef<StompSubscription | null>(null);
+    const serverSubRef = useRef<StompSubscription | null>(null);
 
     // Use refs for callbacks
     const onMemberJoinedRef = useRef(onMemberJoined);
     const onMemberLeftRef = useRef(onMemberLeft);
+    const onServerDeletedRef = useRef(onServerDeleted);
 
     useEffect(() => {
         onMemberJoinedRef.current = onMemberJoined;
         onMemberLeftRef.current = onMemberLeft;
-    }, [onMemberJoined, onMemberLeft]);
+        onServerDeletedRef.current = onServerDeleted;
+    }, [onMemberJoined, onMemberLeft, onServerDeleted]);
 
     useEffect(() => {
         // Cleanup previous connection
@@ -35,6 +40,10 @@ export const useServerNotifications = ({
             if (subscriptionRef.current) {
                 subscriptionRef.current.unsubscribe();
                 subscriptionRef.current = null;
+            }
+            if (serverSubRef.current) {
+                serverSubRef.current.unsubscribe();
+                serverSubRef.current = null;
             }
             clientRef.current.deactivate();
             clientRef.current = null;
@@ -56,13 +65,14 @@ export const useServerNotifications = ({
                 console.log('[ServerNotifications STOMP]: ' + str);
             },
             onConnect: () => {
-                const topic = `/topic/server.${serverId}.members`;
-                console.log(`[ServerNotifications] Connected. Subscribing to: ${topic}`);
+                const membersTopic = `/topic/server.${serverId}.members`;
+                const serverTopic = `/topic/server.${serverId}`;
+                console.log(`[ServerNotifications] Connected. Subscribing to: ${membersTopic} and ${serverTopic}`);
 
-                subscriptionRef.current = client.subscribe(topic, (msg) => {
+                subscriptionRef.current = client.subscribe(membersTopic, (msg) => {
                     try {
                         const notification = JSON.parse(msg.body);
-                        console.log('[ServerNotifications] Received:', notification);
+                        console.log('[ServerNotifications] Received (members):', notification);
 
                         switch (notification.type) {
                             case 'MEMBER_JOINED':
@@ -81,6 +91,22 @@ export const useServerNotifications = ({
                         }
                     } catch (error) {
                         console.error('[ServerNotifications] Failed to parse message:', error);
+                    }
+                });
+
+                serverSubRef.current = client.subscribe(serverTopic, (msg) => {
+                    try {
+                        const notification = JSON.parse(msg.body);
+                        console.log('[ServerNotifications] Received (server):', notification);
+
+                        if (notification.type === 'SERVER_DELETED') {
+                            const deletedServerId = notification.payload?.serverId || serverId;
+                            if (onServerDeletedRef.current) {
+                                onServerDeletedRef.current(deletedServerId);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('[ServerNotifications] Failed to parse server message:', error);
                     }
                 });
             },
@@ -102,9 +128,14 @@ export const useServerNotifications = ({
                 subscriptionRef.current.unsubscribe();
                 subscriptionRef.current = null;
             }
+            if (serverSubRef.current) {
+                serverSubRef.current.unsubscribe();
+                serverSubRef.current = null;
+            }
             if (client) {
                 client.deactivate();
             }
         };
     }, [serverId, userToken]); // Callbacks removed from dependencies
 };
+
