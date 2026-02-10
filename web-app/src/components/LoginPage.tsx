@@ -81,6 +81,7 @@ export const LoginPage: React.FC = () => {
                     name: idPayload.name,
                     given_name: idPayload.given_name,
                     family_name: idPayload.family_name,
+                    picture: idPayload.picture,
                     iss: idPayload.iss,
                     aud: idPayload.aud,
                 },

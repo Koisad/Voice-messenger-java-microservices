@@ -308,7 +308,11 @@ export default function App() {
         }
     };
 
-    if (auth.isLoading) return <div className="center-screen">Ładowanie...</div>;
+    if (auth.isLoading) return (
+        <div className="center-screen">
+            <div className="loading-spinner"></div>
+        </div>
+    );
     if (auth.error) return <div className="center-screen">Błąd logowania: {auth.error.message}</div>;
 
     if (!auth.isAuthenticated) {
@@ -571,8 +575,18 @@ export default function App() {
                     )}
 
                     <div className="user-bar">
-                        <div className="username">{auth.user?.profile.preferred_username}</div>
-                        <div className="status">Online</div>
+                        <div className="user-avatar-container">
+                            {auth.user?.profile.picture ? (
+                                <img src={auth.user.profile.picture} alt="Avatar" className="user-avatar-img" />
+                            ) : (
+                                <div className="user-avatar-placeholder" />
+                            )}
+                            <div className="status-indicator online" />
+                        </div>
+                        <div className="user-info">
+                            <div className="username">{auth.user?.profile.preferred_username}</div>
+                            <div className="status-text">Online</div>
+                        </div>
                     </div>
                 </div>
             ) : (
