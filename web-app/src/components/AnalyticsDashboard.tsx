@@ -67,7 +67,17 @@ export const AnalyticsDashboard: React.FC<Props> = ({ userId }) => {
     const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
 
     const handleMouseMove = (e: React.MouseEvent) => {
-        setTooltipPos({ x: e.clientX, y: e.clientY });
+        const tooltipWidth = 340; // 320px width + 20px padding/border approx
+        const offset = 15; // Space from cursor
+        const windowWidth = window.innerWidth;
+
+        // If tooltip would go off-screen to the right, show it on the left
+        let x = e.clientX + offset;
+        if (x + tooltipWidth > windowWidth) {
+            x = e.clientX - tooltipWidth - offset;
+        }
+
+        setTooltipPos({ x, y: e.clientY });
     };
 
     const kpiDescriptions: Record<string, string> = {
