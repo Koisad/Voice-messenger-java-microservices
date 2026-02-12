@@ -70,7 +70,8 @@ export const ServerAnalyticsPanel: React.FC<Props> = ({ serverId, mediaServerUrl
         if (!open) return;
 
         fetchMetrics();
-        intervalRef.current = setInterval(fetchMetrics, 15000);
+        fetchMetrics();
+        intervalRef.current = setInterval(fetchMetrics, 10000);
 
         return () => {
             if (intervalRef.current) {
@@ -80,9 +81,23 @@ export const ServerAnalyticsPanel: React.FC<Props> = ({ serverId, mediaServerUrl
         };
     }, [open, fetchMetrics]);
 
-    const avgRtt = avg(metrics.map(m => m.rtt));
-    const avgLoss = avg(metrics.map(m => m.packetLossRatio));
-    const avgJitter = avg(metrics.map(m => m.jitter));
+    // Filter metrics to last 15 seconds (Real-time view with buffer)
+    const now = Date.now();
+    const recentMetrics = metrics.filter(m => new Date(m.timestamp).getTime() > now - 15000);
+
+    // If no recent metrics, use all metrics (fallback) or show 0? 
+    // Ideally if connected we have data. If not, 0 is fine.
+    // Spec: "ping jumps" -> user wants reactivity. 
+    // If recentMetrics is empty but we have old data, showing old data is misleading (it's "stuck").
+    // So better to show 0 or "—" if no recent data (implies disconnected/idle).
+    // The 'avg' function returns 0 if empty.
+
+    // Use recentMetrics for calculation
+    const displayMetrics = recentMetrics.length > 0 ? recentMetrics : [];
+
+    const avgRtt = avg(displayMetrics.map(m => m.rtt));
+    const avgLoss = avg(displayMetrics.map(m => m.packetLossRatio));
+    const avgJitter = avg(displayMetrics.map(m => m.jitter));
 
     return (
         <div className="server-analytics-panel">
