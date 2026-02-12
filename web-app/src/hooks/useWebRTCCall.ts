@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useSignaling } from './useSignaling';
 
 interface UseWebRTCCallProps {
@@ -194,6 +194,28 @@ export const useWebRTCCall = ({ userToken, currentUserId, currentUsername }: Use
         setRemotePeer(null);
         setCallStatus('idle');
     };
+
+    // Handle tab close / refresh
+    const remotePeerRef = useRef(remotePeer);
+    useEffect(() => {
+        remotePeerRef.current = remotePeer;
+    }, [remotePeer]);
+
+    useEffect(() => {
+        const handleBeforeUnload = () => {
+            const peer = remotePeerRef.current;
+            if (peer) {
+                // Próba wysłania przez WebSocket (może się nie udać)
+                sendSignal({
+                    type: 'call-ended',
+                    target: peer.id
+                });
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [sendSignal]); // Usunięto remotePeer z zależności
 
     return {
         callStatus,
