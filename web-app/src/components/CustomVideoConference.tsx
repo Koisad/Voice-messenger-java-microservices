@@ -12,6 +12,7 @@ import {
 } from '@livekit/components-react';
 import { Track } from 'livekit-client';
 import '@livekit/components-styles';
+import './CustomVideoConference.css';
 
 export function CustomVideoConference() {
     const tracks = useTracks(
