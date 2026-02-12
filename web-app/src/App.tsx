@@ -455,14 +455,6 @@ export default function App() {
                     <MessageCircle size={24} />
                 </div>
 
-                <div
-                    className={`server-icon ${viewMode === 'analytics' ? 'active' : ''}`}
-                    onClick={() => setViewMode('analytics')}
-                    title="Analityka Sieci"
-                >
-                    <BarChart3 size={24} />
-                </div>
-
                 <div className="sidebar-separator" />
 
                 {/* Servers */}
@@ -486,6 +478,14 @@ export default function App() {
                     setShowModal(true);
                 }}>
                     <Plus />
+                </div>
+
+                <div
+                    className={`server-icon ${viewMode === 'analytics' ? 'active' : ''}`}
+                    onClick={() => setViewMode('analytics')}
+                    title="Analityka Sieci"
+                >
+                    <BarChart3 size={24} />
                 </div>
 
                 <div className="server-icon logout-icon" onClick={requestLogout}>
@@ -590,6 +590,11 @@ export default function App() {
                             <Trash2 size={16} /> Usuń serwer
                         </button>
                     )}
+
+                    <ServerAnalyticsPanel
+                        serverId={selectedServerId}
+                        mediaServerUrl={liveKitUrl}
+                    />
 
                     <div className="user-bar">
                         <div className="user-avatar-container">
@@ -780,10 +785,6 @@ export default function App() {
 
             {selectedServer && !isVoiceActive && viewMode === 'servers' && (
                 <aside className="members-sidebar">
-                    <ServerAnalyticsPanel
-                        serverId={selectedServerId}
-                        mediaServerUrl={liveKitUrl}
-                    />
                     <h3>CZŁONKOWIE — {members.length}</h3>
                     {members.map((m, i) => (
                         <div key={i} className="member-item">
