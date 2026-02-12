@@ -1,4 +1,4 @@
-package dto;
+package com.voicecommunicator.common.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

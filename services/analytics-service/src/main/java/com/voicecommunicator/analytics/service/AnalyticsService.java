@@ -2,7 +2,7 @@ package com.voicecommunicator.analytics.service;
 
 import com.voicecommunicator.analytics.model.NetworkMetric;
 import com.voicecommunicator.analytics.repository.NetworkMetricRepository;
-import dto.NetworkMetricDTO;
+import com.voicecommunicator.common.dto.NetworkMetricDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
