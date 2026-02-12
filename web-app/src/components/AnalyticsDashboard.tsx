@@ -195,7 +195,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ userId }) => {
                                     <YAxis tick={axisStyle} axisLine={false} tickLine={false} unit=" ms" width={60} />
                                     <Tooltip content={<CustomTooltip />} />
                                     <Line
-                                        type="monotone"
+                                        type="linear"
                                         dataKey="jitter"
                                         name="Jitter"
                                         stroke="#f0a030"
@@ -226,7 +226,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ userId }) => {
                                     <YAxis tick={axisStyle} axisLine={false} tickLine={false} unit="%" width={50} />
                                     <Tooltip content={<CustomTooltip />} />
                                     <Area
-                                        type="monotone"
+                                        type="stepAfter"
                                         dataKey="packetLossRatio"
                                         name="Packet Loss"
                                         stroke="#ed4245"

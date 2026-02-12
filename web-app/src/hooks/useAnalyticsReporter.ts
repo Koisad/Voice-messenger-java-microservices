@@ -157,25 +157,31 @@ export const useAnalyticsReporter = ({ roomId, mediaServerUrl, userToken }: UseA
                     ? (totalPacketsLost / (totalPackets + totalPacketsLost)) * 100
                     : null;
 
+                // Default to 0 if we have RTT (active connection) but no other stats
+                // This happens when just connected or idle
+                const hasConnection = avgRtt !== null;
+                const finalJitter = avgJitter !== null ? avgJitter : (hasConnection ? 0 : null);
+                const finalLossRatio = lossRatio !== null ? lossRatio : (hasConnection ? 0 : null);
+                const finalPacketsLost = totalPacketsLost; // 0 is valid
+
                 const metric = {
                     serverId: mediaServerUrl,   // LiveKit server = media server
                     roomId,                      // App server = room
                     rtt: avgRtt,
-                    packetsLost: totalPacketsLost > 0 ? totalPacketsLost : null,
-                    packetLossRatio: lossRatio,
-                    jitter: avgJitter,
+                    packetsLost: finalPacketsLost,
+                    packetLossRatio: finalLossRatio,
+                    jitter: finalJitter,
                     connectionType: getConnectionType(),
                     timestamp: Date.now(),
                 };
 
-                if (avgRtt !== null || avgJitter !== null || totalPacketsLost > 0) {
+                console.log('[AnalyticsReporter] Metric:', metric);
+
+                if (avgRtt !== null) { // Send if we have at least RTT
                     stomp.publish({
                         destination: '/app/analytics',
-                        body: JSON.stringify(metric),
+                        body: JSON.stringify(metric)
                     });
-                    console.log('[AnalyticsReporter] Sent metric:', metric);
-                } else {
-                    console.log('[AnalyticsReporter] No meaningful stats yet, skipping send');
                 }
             } catch (err) {
                 console.warn('[AnalyticsReporter] Failed to collect stats:', err);
