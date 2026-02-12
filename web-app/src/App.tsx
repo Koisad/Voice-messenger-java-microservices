@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useAuth } from 'react-oidc-context';
-import { LiveKitRoom, VideoConference } from '@livekit/components-react';
+import { LiveKitRoom } from '@livekit/components-react';
 import '@livekit/components-styles';
 import { api } from './api/client';
 import type { Server, Message, MemberDTO } from './types';
@@ -19,6 +19,7 @@ import { useToast } from './hooks/useToast';
 import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import { ServerAnalyticsPanel } from './components/ServerAnalyticsPanel';
 import { useAnalyticsReporter } from './hooks/useAnalyticsReporter';
+import { CustomVideoConference } from './components/CustomVideoConference';
 
 // Wrapper component — must be inside <LiveKitRoom> to access Room context
 function AnalyticsReporterInRoom({ roomId, mediaServerUrl, userToken }: { roomId: string | null; mediaServerUrl: string; userToken?: string }) {
@@ -253,6 +254,17 @@ export default function App() {
         }
     }, [auth.isAuthenticated]);
 
+    // Helper for voice connection
+    const connectToVoiceChannel = (channelId: string) => {
+        api.getLiveKitToken(channelId)
+            .then(data => {
+                setLiveKitToken(data.token);
+                setLiveKitUrl(data.serverUrl);
+                setIsVoiceActive(true);
+            })
+            .catch(err => console.error("Błąd LiveKit:", err));
+    };
+
     // 2. Obsługa zmiany kanału (Tekst vs Głos)
     useEffect(() => {
         if (!selectedChannel || !selectedServerId) return;
@@ -262,13 +274,11 @@ export default function App() {
 
         // Obsługa LiveKit (tylko dla kanałów głosowych)
         if (selectedChannel.type === 'VOICE') {
-            api.getLiveKitToken(selectedChannel.id)
-                .then(data => {
-                    setLiveKitToken(data.token);
-                    setLiveKitUrl(data.serverUrl);
-                    setIsVoiceActive(true);
-                })
-                .catch(err => console.error("Błąd LiveKit:", err));
+            // Jeśli kanał głosowy jest wybrany, ale nie jesteśmy połączeni (bo np. użytkownik się rozłączył),
+            // to useEffect NIE powinien automatycznie łączyć PONOWNIE przy każdym renderze, 
+            // ale przy ZMIANIE kanału (selectedChannelId changes) - tak.
+            // W tym układzie dependencies [selectedChannelId] załatwiają sprawę.
+            connectToVoiceChannel(selectedChannel.id);
         } else {
             setIsVoiceActive(false);
             setLiveKitToken("");
@@ -730,6 +740,17 @@ export default function App() {
                         <h2>Witaj w Voice Messenger 👋</h2>
                         <p>Wybierz serwer z lewej strony lub stwórz nowy.</p>
                     </div>
+                ) : selectedChannel?.type === 'VOICE' && !isVoiceActive ? (
+                    <div className="welcome">
+                        <div className="no-channel-selected">
+                            <Volume2 size={48} color="#4b5563" />
+                            <h3>{selectedChannel.name}</h3>
+                            <p>Kanał głosowy (Rozłączono)</p>
+                            <button className="btn btn-primary" onClick={() => connectToVoiceChannel(selectedChannel.id)}>
+                                Dołącz
+                            </button>
+                        </div>
+                    </div>
                 ) : isVoiceActive && liveKitToken ? (
                     <div className="voice-chat-container">
                         <div className="voice-video-area">
@@ -742,8 +763,13 @@ export default function App() {
                                 data-lk-theme="default"
                                 style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
                                 onError={(err) => console.error("LiveKit Error:", err)}
+                                onDisconnected={() => {
+                                    console.log("Disconnected from Room");
+                                    setIsVoiceActive(false);
+                                    setLiveKitToken("");
+                                }}
                             >
-                                <VideoConference />
+                                <CustomVideoConference />
                                 <AnalyticsReporterInRoom roomId={selectedServerId} mediaServerUrl={liveKitUrl} userToken={auth.user?.access_token} />
                             </LiveKitRoom>
                         </div>
