@@ -14,6 +14,7 @@ import java.io.Serializable;
 public class NetworkMetricDTO implements Serializable {
     private String userId;
     private String serverId;
+    private String roomId;
 
     private Double rtt; // ping
     private Long packetsLost;
