@@ -193,8 +193,14 @@ export const api = {
 
     // Analytics
     getServerMetrics: async (serverId: string): Promise<NetworkMetric[]> => {
-        const res = await fetch(`${BASE_URL}/analytics/server/${serverId}`, { headers: getHeaders() });
+        const res = await fetch(`${BASE_URL}/analytics/server/${encodeURIComponent(serverId)}`, { headers: getHeaders() });
         if (!res.ok) throw new Error('Failed to fetch server metrics');
+        return res.json();
+    },
+
+    getRoomMetrics: async (roomId: string): Promise<NetworkMetric[]> => {
+        const res = await fetch(`${BASE_URL}/analytics/room/${roomId}`, { headers: getHeaders() });
+        if (!res.ok) throw new Error('Failed to fetch room metrics');
         return res.json();
     },
 

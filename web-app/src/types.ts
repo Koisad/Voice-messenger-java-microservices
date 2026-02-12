@@ -98,6 +98,7 @@ export interface NetworkMetric {
     metadata: {
         userId: string;
         serverId: string;
+        roomId: string;
         connectionType: string;
     };
 }

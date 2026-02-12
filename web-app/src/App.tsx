@@ -20,8 +20,8 @@ import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import { useAnalyticsReporter } from './hooks/useAnalyticsReporter';
 
 // Wrapper component — must be inside <LiveKitRoom> to access Room context
-function AnalyticsReporterInRoom({ serverId, userToken }: { serverId: string | null; userToken?: string }) {
-    useAnalyticsReporter({ serverId, userToken });
+function AnalyticsReporterInRoom({ roomId, mediaServerUrl, userToken }: { roomId: string | null; mediaServerUrl: string; userToken?: string }) {
+    useAnalyticsReporter({ roomId, mediaServerUrl, userToken });
     return null;
 }
 
@@ -635,6 +635,7 @@ export default function App() {
                 <AnalyticsDashboard
                     serverId={selectedServerId}
                     userId={auth.user?.profile.sub || ''}
+                    mediaServerUrl={liveKitUrl}
                 />
             )}
 
@@ -658,7 +659,7 @@ export default function App() {
                                 onError={(err) => console.error("LiveKit Error:", err)}
                             >
                                 <VideoConference />
-                                <AnalyticsReporterInRoom serverId={selectedServerId} userToken={auth.user?.access_token} />
+                                <AnalyticsReporterInRoom roomId={selectedServerId} mediaServerUrl={liveKitUrl} userToken={auth.user?.access_token} />
                             </LiveKitRoom>
                         </div>
                         <div className="voice-chat-sidebar">

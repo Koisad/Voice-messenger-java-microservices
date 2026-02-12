@@ -6,15 +6,16 @@ import {
     XAxis, YAxis, CartesianGrid, Tooltip,
     ResponsiveContainer
 } from 'recharts';
-import { BarChart3, Activity, Wifi } from 'lucide-react';
+import { BarChart3, Activity, Wifi, Server } from 'lucide-react';
 import './AnalyticsDashboard.css';
 
 interface Props {
-    serverId: string | null;
+    serverId: string | null;      // App room ID
     userId: string;
+    mediaServerUrl: string;       // LiveKit server URL
 }
 
-type TabMode = 'server' | 'user';
+type TabMode = 'room' | 'user' | 'media';
 
 interface ChartDataPoint {
     time: string;
@@ -63,19 +64,22 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     );
 };
 
-export const AnalyticsDashboard: React.FC<Props> = ({ serverId, userId }) => {
-    const [tab, setTab] = useState<TabMode>('server');
+export const AnalyticsDashboard: React.FC<Props> = ({ serverId, userId, mediaServerUrl }) => {
+    const [tab, setTab] = useState<TabMode>('room');
     const [metrics, setMetrics] = useState<NetworkMetric[]>([]);
     const [loading, setLoading] = useState(false);
 
     const fetchMetrics = useCallback(async () => {
         setLoading(true);
         try {
-            if (tab === 'server' && serverId) {
-                const data = await api.getServerMetrics(serverId);
+            if (tab === 'room' && serverId) {
+                const data = await api.getRoomMetrics(serverId);
                 setMetrics(data);
             } else if (tab === 'user') {
                 const data = await api.getUserMetrics(userId);
+                setMetrics(data);
+            } else if (tab === 'media' && mediaServerUrl) {
+                const data = await api.getServerMetrics(mediaServerUrl);
                 setMetrics(data);
             } else {
                 setMetrics([]);
@@ -86,7 +90,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ serverId, userId }) => {
         } finally {
             setLoading(false);
         }
-    }, [tab, serverId, userId]);
+    }, [tab, serverId, userId, mediaServerUrl]);
 
     useEffect(() => {
         fetchMetrics();
@@ -123,11 +127,11 @@ export const AnalyticsDashboard: React.FC<Props> = ({ serverId, userId }) => {
 
             <div className="analytics-tabs">
                 <button
-                    className={`analytics-tab ${tab === 'server' ? 'active' : ''}`}
-                    onClick={() => setTab('server')}
+                    className={`analytics-tab ${tab === 'room' ? 'active' : ''}`}
+                    onClick={() => setTab('room')}
                 >
                     <Wifi size={14} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-                    Metryki Serwera
+                    Pokój
                 </button>
                 <button
                     className={`analytics-tab ${tab === 'user' ? 'active' : ''}`}
@@ -135,6 +139,13 @@ export const AnalyticsDashboard: React.FC<Props> = ({ serverId, userId }) => {
                 >
                     <Activity size={14} style={{ marginRight: 6, verticalAlign: 'middle' }} />
                     Moje Metryki
+                </button>
+                <button
+                    className={`analytics-tab ${tab === 'media' ? 'active' : ''}`}
+                    onClick={() => setTab('media')}
+                >
+                    <Server size={14} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+                    Media Serwer
                 </button>
             </div>
 
@@ -149,8 +160,8 @@ export const AnalyticsDashboard: React.FC<Props> = ({ serverId, userId }) => {
                     </div>
                     <h3>Brak danych</h3>
                     <p>
-                        {tab === 'server' && !serverId
-                            ? 'Wybierz serwer z listy, aby zobaczyć metryki.'
+                        {tab === 'room' && !serverId
+                            ? 'Wybierz pokój z listy, aby zobaczyć metryki.'
                             : 'Nie znaleziono metryk z ostatniej godziny. Dane pojawią się po nawiązaniu połączenia głosowego.'}
                     </p>
                 </div>

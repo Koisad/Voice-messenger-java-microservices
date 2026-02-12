@@ -4,8 +4,44 @@ import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 
 interface UseAnalyticsReporterProps {
-    serverId: string | null;
+    roomId: string | null;        // App server ID (discord-like room)
+    mediaServerUrl: string;       // LiveKit server URL (media server identifier)
     userToken?: string | null;
+}
+
+/**
+ * Returns the real network connection type from Navigator.connection API.
+ */
+function getConnectionType(): string {
+    const nav = navigator as any;
+    const conn = nav.connection || nav.mozConnection || nav.webkitConnection;
+    if (!conn) return 'unknown';
+    return conn.type || conn.effectiveType || 'unknown';
+}
+
+/**
+ * Extracts RTCPeerConnection(s) from the LiveKit Room engine.
+ */
+function getPeerConnections(room: any): RTCPeerConnection[] {
+    const pcs: RTCPeerConnection[] = [];
+    try {
+        const engine = room.engine;
+        if (!engine) return pcs;
+
+        const pcManager = engine.pcManager;
+        if (pcManager) {
+            if (pcManager.publisher?.pc) pcs.push(pcManager.publisher.pc);
+            if (pcManager.subscriber?.pc) pcs.push(pcManager.subscriber.pc);
+        }
+
+        if (pcs.length === 0) {
+            if (engine.publisher?.pc) pcs.push(engine.publisher.pc);
+            if (engine.subscriber?.pc) pcs.push(engine.subscriber.pc);
+        }
+    } catch (e) {
+        console.warn('[AnalyticsReporter] Could not access PeerConnections:', e);
+    }
+    return pcs;
 }
 
 /**
@@ -13,15 +49,15 @@ interface UseAnalyticsReporterProps {
  * and sends them via STOMP to /app/analytics every 10 seconds.
  * Must be used INSIDE <LiveKitRoom> component tree.
  */
-export const useAnalyticsReporter = ({ serverId, userToken }: UseAnalyticsReporterProps) => {
+export const useAnalyticsReporter = ({ roomId, mediaServerUrl, userToken }: UseAnalyticsReporterProps) => {
     const room = useRoomContext();
     const stompRef = useRef<Client | null>(null);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+    // STOMP connection
     useEffect(() => {
-        if (!userToken || !serverId) return;
+        if (!userToken || !roomId) return;
 
-        // Create a dedicated STOMP client for analytics
         const stomp = new Client({
             webSocketFactory: () => new SockJS(`${window.location.origin}/ws`),
             connectHeaders: {
@@ -30,7 +66,7 @@ export const useAnalyticsReporter = ({ serverId, userToken }: UseAnalyticsReport
             reconnectDelay: 10000,
             heartbeatIncoming: 0,
             heartbeatOutgoing: 0,
-            debug: () => { }, // silent
+            debug: () => { },
         });
 
         stomp.onConnect = () => {
@@ -44,129 +80,116 @@ export const useAnalyticsReporter = ({ serverId, userToken }: UseAnalyticsReport
             stomp.deactivate();
             stompRef.current = null;
         };
-    }, [userToken, serverId]);
+    }, [userToken, roomId]);
 
+    // Stats collection
     useEffect(() => {
-        if (!room || !serverId) return;
+        if (!room || !roomId) return;
 
         const collectAndSend = async () => {
             const stomp = stompRef.current;
             if (!stomp || !stomp.connected) return;
 
             try {
-                // Get sender stats from all published tracks
-                const localParticipant = room.localParticipant;
-                const trackPublications = Array.from(localParticipant.trackPublications.values());
+                const pcs = getPeerConnections(room);
+                if (pcs.length === 0) {
+                    console.warn('[AnalyticsReporter] No PeerConnections found');
+                    return;
+                }
 
-                let totalRtt = 0;
-                let totalJitter = 0;
+                let rttSum = 0;
+                let rttCount = 0;
+                let jitterSum = 0;
+                let jitterCount = 0;
                 let totalPacketsLost = 0;
-                let totalPacketsSent = 0;
-                let statCount = 0;
+                let totalPackets = 0;
 
-                for (const pub of trackPublications) {
-                    if (!pub.track) continue;
-                    const sender = pub.track.sender;
-                    if (!sender) continue;
-
-                    const stats = await sender.getStats();
-                    if (!stats) continue;
+                for (const pc of pcs) {
+                    const stats = await pc.getStats();
 
                     stats.forEach((report: any) => {
                         if (report.type === 'candidate-pair' && report.state === 'succeeded') {
-                            if (report.currentRoundTripTime !== undefined) {
-                                totalRtt += report.currentRoundTripTime * 1000; // s -> ms
-                                statCount++;
+                            if (typeof report.currentRoundTripTime === 'number') {
+                                rttSum += report.currentRoundTripTime * 1000;
+                                rttCount++;
                             }
                         }
-                        if (report.type === 'outbound-rtp' && report.kind === 'audio') {
-                            if (report.packetsLost !== undefined) {
+
+                        if (report.type === 'outbound-rtp') {
+                            if (typeof report.packetsSent === 'number') {
+                                totalPackets += report.packetsSent;
+                            }
+                        }
+
+                        if (report.type === 'inbound-rtp') {
+                            if (typeof report.jitter === 'number') {
+                                jitterSum += report.jitter * 1000;
+                                jitterCount++;
+                            }
+                            if (typeof report.packetsLost === 'number') {
                                 totalPacketsLost += report.packetsLost;
                             }
-                            if (report.packetsSent !== undefined) {
-                                totalPacketsSent += report.packetsSent;
+                            if (typeof report.packetsReceived === 'number') {
+                                totalPackets += report.packetsReceived;
                             }
                         }
+
                         if (report.type === 'remote-inbound-rtp') {
-                            if (report.jitter !== undefined) {
-                                totalJitter += report.jitter * 1000; // s -> ms
-                                statCount++;
+                            if (typeof report.jitter === 'number') {
+                                jitterSum += report.jitter * 1000;
+                                jitterCount++;
                             }
-                            if (report.packetsLost !== undefined) {
+                            if (typeof report.packetsLost === 'number') {
                                 totalPacketsLost += report.packetsLost;
+                            }
+                            if (typeof report.roundTripTime === 'number') {
+                                rttSum += report.roundTripTime * 1000;
+                                rttCount++;
                             }
                         }
                     });
                 }
 
-                // Also get receiver (incoming) stats
-                const remoteParticipants = Array.from(room.remoteParticipants.values());
-                for (const rp of remoteParticipants) {
-                    const remotePubs = Array.from(rp.trackPublications.values());
-                    for (const pub of remotePubs) {
-                        if (!pub.track) continue;
-                        const receiver = pub.track.receiver;
-                        if (!receiver) continue;
-
-                        const stats = await receiver.getStats();
-                        if (!stats) continue;
-
-                        stats.forEach((report: any) => {
-                            if (report.type === 'inbound-rtp' && report.kind === 'audio') {
-                                if (report.jitter !== undefined) {
-                                    totalJitter += report.jitter * 1000;
-                                    statCount++;
-                                }
-                                if (report.packetsLost !== undefined) {
-                                    totalPacketsLost += report.packetsLost;
-                                }
-                                if (report.packetsReceived !== undefined) {
-                                    totalPacketsSent += report.packetsReceived;
-                                }
-                            }
-                        });
-                    }
-                }
-
-                const avgRtt = statCount > 0 ? totalRtt / statCount : 0;
-                const avgJitter = statCount > 0 ? totalJitter / statCount : 0;
-                const lossRatio = totalPacketsSent > 0
-                    ? (totalPacketsLost / (totalPacketsSent + totalPacketsLost)) * 100
-                    : 0;
+                const avgRtt = rttCount > 0 ? rttSum / rttCount : null;
+                const avgJitter = jitterCount > 0 ? jitterSum / jitterCount : null;
+                const lossRatio = totalPackets > 0
+                    ? (totalPacketsLost / (totalPackets + totalPacketsLost)) * 100
+                    : null;
 
                 const metric = {
-                    serverId,
-                    rtt: avgRtt > 0 ? avgRtt : null,
+                    serverId: mediaServerUrl,   // LiveKit server = media server
+                    roomId,                      // App server = room
+                    rtt: avgRtt,
                     packetsLost: totalPacketsLost > 0 ? totalPacketsLost : null,
-                    packetLossRatio: lossRatio > 0 ? lossRatio : null,
-                    jitter: avgJitter > 0 ? avgJitter : null,
-                    connectionType: 'livekit',
+                    packetLossRatio: lossRatio,
+                    jitter: avgJitter,
+                    connectionType: getConnectionType(),
                     timestamp: Date.now(),
                 };
 
-                stomp.publish({
-                    destination: '/app/analytics',
-                    body: JSON.stringify(metric),
-                });
-
-                console.log('[AnalyticsReporter] Sent metric:', metric);
+                if (avgRtt !== null || avgJitter !== null || totalPacketsLost > 0) {
+                    stomp.publish({
+                        destination: '/app/analytics',
+                        body: JSON.stringify(metric),
+                    });
+                    console.log('[AnalyticsReporter] Sent metric:', metric);
+                } else {
+                    console.log('[AnalyticsReporter] No meaningful stats yet, skipping send');
+                }
             } catch (err) {
                 console.warn('[AnalyticsReporter] Failed to collect stats:', err);
             }
         };
 
-        // Collect stats every 10 seconds
+        const initialTimeout = setTimeout(collectAndSend, 5_000);
         intervalRef.current = setInterval(collectAndSend, 10_000);
 
-        // Also collect once initially after a short delay
-        const initialTimeout = setTimeout(collectAndSend, 5_000);
-
         return () => {
+            clearTimeout(initialTimeout);
             if (intervalRef.current) {
                 clearInterval(intervalRef.current);
                 intervalRef.current = null;
             }
-            clearTimeout(initialTimeout);
         };
-    }, [room, serverId]);
+    }, [room, roomId, mediaServerUrl]);
 };
