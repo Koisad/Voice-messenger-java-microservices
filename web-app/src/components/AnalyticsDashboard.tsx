@@ -64,6 +64,11 @@ export const AnalyticsDashboard: React.FC<Props> = ({ userId }) => {
     const [metrics, setMetrics] = useState<NetworkMetric[]>([]);
     const [loading, setLoading] = useState(false);
     const [hoveredKpi, setHoveredKpi] = useState<string | null>(null);
+    const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        setTooltipPos({ x: e.clientX, y: e.clientY });
+    };
 
     const kpiDescriptions: Record<string, string> = {
         mos: "MOS (Mean Opinion Score) to uniwersalna ocena jakości rozmowy w skali od 1 do 5, gdzie 5 oznacza krystalicznie czysty dźwięk porównywalny z rozmową twarzą w twarz, a 1 brak możliwości porozumienia. Jest to wskaźnik syntetyczny, wyliczany automatycznie na podstawie opóźnień, jittera oraz utraty pakietów, który najlepiej oddaje subiektywne wrażenia użytkownika. Wynik powyżej 4.0 gwarantuje komfortową konwersację, natomiast wartości poniżej 3.5 mogą sugerować problemy ze zrozumieniem rozmówcy, metaliczny pogłos lub rwanie sygnału. To najważniejsza metryka dla szybkiej oceny ogólnego zdrowia połączenia głosowego.",
@@ -160,7 +165,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ userId }) => {
     };
 
     return (
-        <div className="analytics-dashboard">
+        <div className="analytics-dashboard" onMouseMove={handleMouseMove}>
             <div className="analytics-header">
                 <h2><BarChart3 size={22} /> Metryki sieci użytkownika</h2>
             </div>
@@ -197,7 +202,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ userId }) => {
                                 {mosScore.toFixed(2)}
                                 <span className="kpi-unit">/ 5.0</span>
                             </div>
-                            {hoveredKpi === 'mos' && <div className="kpi-tooltip">{kpiDescriptions.mos}</div>}
+
                         </div>
 
                         {/* RTT */}
@@ -213,7 +218,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ userId }) => {
                                 {avgRtt.toFixed(1)}
                                 <span className="kpi-unit">ms</span>
                             </div>
-                            {hoveredKpi === 'rtt' && <div className="kpi-tooltip">{kpiDescriptions.rtt}</div>}
+
                         </div>
 
                         {/* Packet Loss % */}
@@ -229,7 +234,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ userId }) => {
                                 {avgLoss.toFixed(2)}
                                 <span className="kpi-unit">%</span>
                             </div>
-                            {hoveredKpi === 'loss' && <div className="kpi-tooltip">{kpiDescriptions.loss}</div>}
+
                         </div>
 
                         {/* Jitter */}
@@ -245,7 +250,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ userId }) => {
                                 {avgJitter.toFixed(1)}
                                 <span className="kpi-unit">ms</span>
                             </div>
-                            {hoveredKpi === 'jitter' && <div className="kpi-tooltip">{kpiDescriptions.jitter}</div>}
+
                         </div>
 
                         {/* Total Lost */}
@@ -260,9 +265,22 @@ export const AnalyticsDashboard: React.FC<Props> = ({ userId }) => {
                             <div className="kpi-value">
                                 {totalLost.toLocaleString()}
                             </div>
-                            {hoveredKpi === 'lost' && <div className="kpi-tooltip">{kpiDescriptions.lost}</div>}
+
                         </div>
                     </div>
+
+                    {/* Floating Tooltip */}
+                    {hoveredKpi && kpiDescriptions[hoveredKpi] && (
+                        <div
+                            className="kpi-tooltip-overlay"
+                            style={{
+                                top: tooltipPos.y,
+                                left: tooltipPos.x
+                            }}
+                        >
+                            {kpiDescriptions[hoveredKpi]}
+                        </div>
+                    )}
 
                     {/* Charts */}
                     <div className="analytics-charts-grid">
