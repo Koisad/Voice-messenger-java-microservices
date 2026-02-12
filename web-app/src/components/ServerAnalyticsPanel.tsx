@@ -172,6 +172,14 @@ export const ServerAnalyticsPanel: React.FC<Props> = ({ serverId, mediaServerUrl
                                     <span className="unit">ms</span>
                                 </div>
                             </div>
+                            {metricsToDisplay.length > 0 && metricsToDisplay[0].metadata?.connectionType && (
+                                <div className="server-analytics-kpi info">
+                                    <div className="kpi-label">Typ</div>
+                                    <div className="kpi-val small">
+                                        {metricsToDisplay[0].metadata.connectionType}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

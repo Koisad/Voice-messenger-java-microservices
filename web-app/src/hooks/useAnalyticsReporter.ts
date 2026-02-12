@@ -105,11 +105,19 @@ export const useAnalyticsReporter = ({ roomId, mediaServerUrl, userToken }: UseA
                 let totalPacketsLost = 0;
                 let totalPackets = 0;
 
+                let protocol = 'unknown';
+
                 for (const pc of pcs) {
                     const stats = await pc.getStats();
 
                     stats.forEach((report: any) => {
                         if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+                            // Attempt to get protocol from local candidate
+                            const localCandidate = stats.get(report.localCandidateId);
+                            if (localCandidate && localCandidate.protocol) {
+                                protocol = localCandidate.protocol.toUpperCase();
+                            }
+
                             if (typeof report.currentRoundTripTime === 'number' && report.currentRoundTripTime > 0) {
                                 rttSum += report.currentRoundTripTime * 1000;
                                 rttCount++;
@@ -171,7 +179,7 @@ export const useAnalyticsReporter = ({ roomId, mediaServerUrl, userToken }: UseA
                     packetsLost: finalPacketsLost,
                     packetLossRatio: finalLossRatio,
                     jitter: finalJitter,
-                    connectionType: getConnectionType(),
+                    connectionType: `${getConnectionType()} (${protocol})`,
                     timestamp: Date.now(),
                 };
 
