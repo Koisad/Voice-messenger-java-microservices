@@ -265,3 +265,40 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* --- TOOLTIP OVERLAY STYLES --- */
+.kpi-tooltip-overlay {
+    position: fixed;
+    /* top/left set by JS inline styles */
+    width: 320px;
+    background-color: #111214;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #dbdee1;
+    z-index: 9999;
+    /* Very high to float above everything (modals, etc) */
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    pointer-events: none;
+    /* Crucial so mouse doesn't get stuck on tooltip */
+    font-weight: 400;
+    text-transform: none;
+    transform: translate(12px, 12px);
+    /* Offset slightly from cursor so it doesn't cover it */
+}
+
+.analytics-kpi-card {
+    cursor: help;
+}
+
+.info-icon {
+    color: var(--text-muted);
+    opacity: 0.5;
+    transition: opacity 0.2s;
+}
+
+.analytics-kpi-card:hover .info-icon {
+    opacity: 1;
+}

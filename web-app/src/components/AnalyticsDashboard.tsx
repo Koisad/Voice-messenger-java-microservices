@@ -274,8 +274,11 @@ export const AnalyticsDashboard: React.FC<Props> = ({ userId }) => {
                         <div
                             className="kpi-tooltip-overlay"
                             style={{
+                                position: 'fixed',
+                                zIndex: 9999,
                                 top: tooltipPos.y,
-                                left: tooltipPos.x
+                                left: tooltipPos.x,
+                                pointerEvents: 'none'
                             }}
                         >
                             {kpiDescriptions[hoveredKpi]}
