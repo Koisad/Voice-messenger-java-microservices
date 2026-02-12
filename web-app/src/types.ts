@@ -86,3 +86,19 @@ export interface SignalMessage {
     data?: any;          // WebRTC payload (SDP or ICE candidate)
     senderUsername?: string; // Optional username for display
 }
+
+// Analytics
+export interface NetworkMetric {
+    id: string;
+    timestamp: string;
+    rtt: number | null;
+    packetsLost: number | null;
+    packetLossRatio: number | null;
+    jitter: number | null;
+    metadata: {
+        userId: string;
+        serverId: string;
+        roomId: string;
+        connectionType: string;
+    };
+}

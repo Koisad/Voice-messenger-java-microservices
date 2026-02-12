@@ -5,7 +5,7 @@ import '@livekit/components-styles';
 import { api } from './api/client';
 import type { Server, Message, MemberDTO } from './types';
 import './App.css';
-import { Hash, Volume2, Plus, LogOut, Copy, Users, MessageCircle, AlertTriangle, Eye, EyeOff, Trash2, UserX, DoorOpen } from 'lucide-react';
+import { Hash, Volume2, Plus, LogOut, Copy, Users, MessageCircle, AlertTriangle, Eye, EyeOff, Trash2, UserX, DoorOpen, BarChart3 } from 'lucide-react';
 import { useChatSocket } from './hooks/useChatSocket';
 import { useWebRTCCall } from './hooks/useWebRTCCall';
 import { useServerNotifications } from './hooks/useServerNotifications';
@@ -16,6 +16,15 @@ import { VoiceCallModal } from './components/VoiceCallModal';
 import { LoginPage } from './components/LoginPage';
 import { ToastContainer } from './components/ToastContainer';
 import { useToast } from './hooks/useToast';
+import { AnalyticsDashboard } from './components/AnalyticsDashboard';
+import { ServerAnalyticsPanel } from './components/ServerAnalyticsPanel';
+import { useAnalyticsReporter } from './hooks/useAnalyticsReporter';
+
+// Wrapper component — must be inside <LiveKitRoom> to access Room context
+function AnalyticsReporterInRoom({ roomId, mediaServerUrl, userToken }: { roomId: string | null; mediaServerUrl: string; userToken?: string }) {
+    useAnalyticsReporter({ roomId, mediaServerUrl, userToken });
+    return null;
+}
 
 export default function App() {
     const auth = useAuth();
@@ -27,7 +36,7 @@ export default function App() {
     const { toasts, showToast, removeToast } = useToast();
 
     // --- STAN UI ---
-    type ViewMode = 'servers' | 'friends' | 'dms';
+    type ViewMode = 'servers' | 'friends' | 'dms' | 'analytics';
     const [viewMode, setViewMode] = useState<ViewMode>('servers');
     const [selectedServerId, setSelectedServerId] = useState<string | null>(null);
     const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null); // Kanał "widoczny" (główny widok)
@@ -471,6 +480,14 @@ export default function App() {
                     <Plus />
                 </div>
 
+                <div
+                    className={`server-icon analytics-icon ${viewMode === 'analytics' ? 'active' : ''}`}
+                    onClick={() => setViewMode('analytics')}
+                    title="Analityka Sieci"
+                >
+                    <BarChart3 size={24} />
+                </div>
+
                 <div className="server-icon logout-icon" onClick={requestLogout}>
                     <LogOut />
                 </div>
@@ -562,6 +579,11 @@ export default function App() {
                         ))}
                     </div>
 
+                    <ServerAnalyticsPanel
+                        serverId={selectedServerId}
+                        mediaServerUrl={liveKitUrl}
+                    />
+
                     {!isServerOwner && (
                         <button className="leave-server-btn" onClick={() => setShowLeaveConfirm(true)}>
                             <DoorOpen size={16} /> Opuść serwer
@@ -573,6 +595,8 @@ export default function App() {
                             <Trash2 size={16} /> Usuń serwer
                         </button>
                     )}
+
+
 
                     <div className="user-bar">
                         <div className="user-avatar-container">
@@ -615,6 +639,12 @@ export default function App() {
                 />
             )}
 
+            {viewMode === 'analytics' && (
+                <AnalyticsDashboard
+                    userId={auth.user?.profile.sub || ''}
+                />
+            )}
+
             <main className="chat-area" style={{ display: viewMode === 'servers' ? 'flex' : 'none' }}>
                 {!selectedServerId ? (
                     <div className="welcome">
@@ -635,6 +665,7 @@ export default function App() {
                                 onError={(err) => console.error("LiveKit Error:", err)}
                             >
                                 <VideoConference />
+                                <AnalyticsReporterInRoom roomId={selectedServerId} mediaServerUrl={liveKitUrl} userToken={auth.user?.access_token} />
                             </LiveKitRoom>
                         </div>
                         <div className="voice-chat-sidebar">

@@ -76,9 +76,14 @@ html,
 }
 
 .logout-icon {
-    margin-top: auto;
+    margin-top: 4px;
     margin-bottom: 12px;
     background: transparent;
+}
+
+.analytics-icon {
+    margin-top: auto;
+    background: transparent !important;
 }
 
 .logout-icon:hover {
@@ -633,6 +638,13 @@ label {
     gap: 8px;
     padding: 8px 12px;
     margin-bottom: 4px;
+}
+
+.channel-list {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    /* Firefox flex fix */
 }
 
 .channel-add-input {

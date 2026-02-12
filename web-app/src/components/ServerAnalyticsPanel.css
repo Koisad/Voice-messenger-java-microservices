@@ -1,0 +1,195 @@
+.server-analytics-panel {
+    /* Exact match for button positioning */
+    width: calc(100% - 16px);
+    margin: 4px auto 8px;
+    /* Same margin as delete-server-btn */
+    padding: 0;
+    border: none;
+}
+
+.server-analytics-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Center content like button */
+    gap: 8px;
+    /* Match button gap */
+    padding: 8px 12px;
+    /* Match button padding */
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.15s;
+
+    /* Button-like style matching leave/delete buttons */
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    /* Neutral border */
+    border-radius: 6px;
+    color: #949ba4;
+    font-size: 13px;
+    font-weight: 500;
+    /* Regular weight, not bold */
+}
+
+.server-analytics-header:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: #dcddde;
+    color: #dcddde;
+}
+
+.server-analytics-header h4 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: normal;
+    color: inherit;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.server-analytics-chevron {
+    transition: transform 0.2s ease;
+    color: inherit;
+    opacity: 0.7;
+    margin-left: 4px;
+    /* Small offset */
+}
+
+.server-analytics-chevron.open {
+    transform: rotate(180deg);
+}
+
+.server-analytics-body {
+    overflow: hidden;
+    animation: slideDown 0.2s ease;
+    margin-top: 4px;
+    padding: 0;
+    /* Align with container */
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        max-height: 0;
+    }
+
+    to {
+        opacity: 1;
+        max-height: 300px;
+    }
+}
+
+.server-analytics-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.server-analytics-tab {
+    flex: 1;
+    padding: 4px 0;
+    font-size: 11px;
+    font-weight: 600;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    color: #949ba4;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.server-analytics-tab:hover {
+    background: rgba(255, 255, 255, 0.04);
+    color: #dcddde;
+}
+
+.server-analytics-tab.active {
+    background: rgba(88, 101, 242, 0.15);
+    border-color: rgba(88, 101, 242, 0.3);
+    color: #8b9bf7;
+}
+
+.server-analytics-kpis {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 4px;
+}
+
+.server-analytics-kpi {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    padding: 6px;
+    text-align: center;
+    transition: background 0.15s;
+}
+
+.server-analytics-kpi:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.server-analytics-kpi .kpi-label {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #72767d;
+    margin-bottom: 2px;
+}
+
+.server-analytics-kpi .kpi-val {
+    font-size: 13px;
+    font-weight: 700;
+    color: #f2f3f5;
+}
+
+.server-analytics-kpi .kpi-val .unit {
+    font-size: 9px;
+    font-weight: 500;
+    color: #949ba4;
+    margin-left: 1px;
+}
+
+.server-analytics-kpi.good .kpi-val {
+    color: #57f287;
+}
+
+.server-analytics-kpi.warn .kpi-val {
+    color: #fee75c;
+}
+
+.server-analytics-kpi.bad .kpi-val {
+    color: #ed4245;
+}
+
+.server-analytics-empty,
+.server-analytics-loading {
+    text-align: center;
+    padding: 8px 0;
+    color: #72767d;
+    font-size: 11px;
+}
+
+.server-analytics-loading .mini-spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-top-color: #8b9bf7;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
