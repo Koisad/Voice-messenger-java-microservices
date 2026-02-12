@@ -72,7 +72,7 @@ export const ServerAnalyticsPanel: React.FC<Props> = ({ serverId, mediaServerUrl
 
         fetchMetrics();
         fetchMetrics();
-        intervalRef.current = setInterval(fetchMetrics, 10000);
+        intervalRef.current = setInterval(fetchMetrics, 3000);
 
         return () => {
             if (intervalRef.current) {
@@ -172,14 +172,6 @@ export const ServerAnalyticsPanel: React.FC<Props> = ({ serverId, mediaServerUrl
                                     <span className="unit">ms</span>
                                 </div>
                             </div>
-                            {metricsToDisplay.length > 0 && metricsToDisplay[0].metadata?.connectionType && (
-                                <div className="server-analytics-kpi info">
-                                    <div className="kpi-label">Typ</div>
-                                    <div className="kpi-val small">
-                                        {metricsToDisplay[0].metadata.connectionType}
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     )}
                 </div>

@@ -196,8 +196,8 @@ export const useAnalyticsReporter = ({ roomId, mediaServerUrl, userToken }: UseA
             }
         };
 
-        const initialTimeout = setTimeout(collectAndSend, 5_000);
-        intervalRef.current = setInterval(collectAndSend, 10_000);
+        const initialTimeout = setTimeout(collectAndSend, 2_000);
+        intervalRef.current = setInterval(collectAndSend, 3_000);
 
         return () => {
             clearTimeout(initialTimeout);
