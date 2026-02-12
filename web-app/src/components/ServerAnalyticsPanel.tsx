@@ -7,6 +7,7 @@ import './ServerAnalyticsPanel.css';
 interface Props {
     serverId: string | null;
     mediaServerUrl: string;
+    currentUserId?: string;
 }
 
 type PanelTab = 'room' | 'media';
@@ -38,7 +39,7 @@ function jitterClass(v: number): string {
     return 'bad';
 }
 
-export const ServerAnalyticsPanel: React.FC<Props> = ({ serverId, mediaServerUrl }) => {
+export const ServerAnalyticsPanel: React.FC<Props> = ({ serverId, mediaServerUrl, currentUserId }) => {
     const [open, setOpen] = useState(false);
     const [tab, setTab] = useState<PanelTab>('room');
     const [metrics, setMetrics] = useState<NetworkMetric[]>([]);
@@ -93,11 +94,15 @@ export const ServerAnalyticsPanel: React.FC<Props> = ({ serverId, mediaServerUrl
     // The 'avg' function returns 0 if empty.
 
     // Use recentMetrics for calculation
-    const displayMetrics = recentMetrics.length > 0 ? recentMetrics : [];
+    // If tab is 'room', we show specific user stats (My Connection)
+    // If tab is 'media', we show server averages (Infrastructure Health)
+    const metricsToDisplay = (tab === 'room' && currentUserId)
+        ? recentMetrics.filter(m => m.metadata?.userId === currentUserId)
+        : recentMetrics;
 
-    const avgRtt = avg(displayMetrics.map(m => m.rtt));
-    const avgLoss = avg(displayMetrics.map(m => m.packetLossRatio));
-    const avgJitter = avg(displayMetrics.map(m => m.jitter));
+    const avgRtt = avg(metricsToDisplay.map(m => m.rtt));
+    const avgLoss = avg(metricsToDisplay.map(m => m.packetLossRatio));
+    const avgJitter = avg(metricsToDisplay.map(m => m.jitter));
 
     return (
         <div className="server-analytics-panel">

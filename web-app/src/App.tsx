@@ -649,6 +649,7 @@ export default function App() {
                     <ServerAnalyticsPanel
                         serverId={selectedServerId}
                         mediaServerUrl={liveKitUrl}
+                        currentUserId={currentUserId}
                     />
 
                     {!isServerOwner && (
