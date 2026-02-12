@@ -41,7 +41,7 @@
     display: flex;
 }
 
-.toast-message {
+.toast-text {
     flex: 1;
     font-size: 14px;
     line-height: 1.4;
@@ -88,7 +88,7 @@
     color: #fff;
 }
 
-.toast-message {
+.toast.toast-message {
     background: rgba(43, 45, 49, 0.95);
     color: #dbdee1;
     border-color: rgba(255, 255, 255, 0.08);

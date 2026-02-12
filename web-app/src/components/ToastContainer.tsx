@@ -26,7 +26,7 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onRemove
             {toasts.map(toast => (
                 <div key={toast.id} className={`toast toast-${toast.type}`}>
                     <span className="toast-icon">{iconMap[toast.type]}</span>
-                    <span className="toast-message">{toast.message}</span>
+                    <span className="toast-text">{toast.message}</span>
                     <button className="toast-close" onClick={() => onRemove(toast.id)}>
                         <X size={14} />
                     </button>

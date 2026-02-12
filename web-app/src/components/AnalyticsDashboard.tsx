@@ -220,7 +220,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ userId }) => {
                                 <LineChart data={chartData}>
                                     <CartesianGrid {...gridStyle} />
                                     <XAxis dataKey="time" tick={axisStyle} axisLine={false} tickLine={false} />
-                                    <YAxis tick={axisStyle} axisLine={false} tickLine={false} unit=" ms" width={60} />
+                                    <YAxis tick={axisStyle} axisLine={false} tickLine={false} unit=" ms" width={80} type="number" />
                                     <Tooltip content={<CustomTooltip />} />
                                     <Line
                                         type="linear"
@@ -245,7 +245,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ userId }) => {
                                 <LineChart data={chartData}>
                                     <CartesianGrid {...gridStyle} />
                                     <XAxis dataKey="time" tick={axisStyle} axisLine={false} tickLine={false} />
-                                    <YAxis tick={axisStyle} axisLine={false} tickLine={false} unit=" ms" width={60} />
+                                    <YAxis tick={axisStyle} axisLine={false} tickLine={false} unit=" ms" width={80} type="number" />
                                     <Tooltip content={<CustomTooltip />} />
                                     <Line
                                         type="linear"
@@ -276,7 +276,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ userId }) => {
                                     </defs>
                                     <CartesianGrid {...gridStyle} />
                                     <XAxis dataKey="time" tick={axisStyle} axisLine={false} tickLine={false} />
-                                    <YAxis tick={axisStyle} axisLine={false} tickLine={false} unit="%" width={50} />
+                                    <YAxis tick={axisStyle} axisLine={false} tickLine={false} unit="%" width={80} />
                                     <Tooltip content={<CustomTooltip />} />
                                     <Area
                                         type="stepAfter"

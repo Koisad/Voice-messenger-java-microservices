@@ -81,7 +81,7 @@ export const useUserNotifications = ({
                                 if (onDMReceivedRef.current && notification.payload) {
                                     onDMReceivedRef.current({
                                         senderId: notification.payload.senderId,
-                                        senderName: notification.payload.senderName,
+                                        senderName: notification.payload.senderUsername,
                                         content: notification.payload.content,
                                         channelId: notification.payload.channelId
                                     });
