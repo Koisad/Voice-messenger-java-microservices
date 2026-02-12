@@ -150,3 +150,8 @@
 .lk-button.icon-only svg {
     margin-right: 0;
 }
+
+/* Fix alignment for menu trigger arrows (remove right margin) */
+.lk-button-menu-trigger .lk-button svg {
+    margin-right: 0 !important;
+}
