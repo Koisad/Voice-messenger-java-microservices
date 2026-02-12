@@ -103,6 +103,58 @@ export const AnalyticsDashboard: React.FC<Props> = ({ userId }) => {
     const axisStyle = { fontSize: 11, fill: '#949ba4' };
     const gridStyle = { strokeDasharray: '3 3', stroke: 'rgba(255,255,255,0.04)' };
 
+    // MOS Calculation (Simplified E-Model)
+    const calculateMOS = (rtt: number, jitter: number, loss: number): number => {
+        // R-Factor base for G.711 is ~93.2
+        let R = 93.2;
+
+        // Effective Latency: RTT + Jitter buffer (2 * jitter)
+        const effectiveLatency = rtt + (jitter * 2);
+
+        // Delay Impairment (Id)
+        let Id = 0;
+        if (effectiveLatency < 160) {
+            Id = effectiveLatency / 40;
+        } else {
+            Id = (effectiveLatency - 120) / 10;
+        }
+
+        // Equipment Impairment (Ie) due to packet loss
+        // standard approximation for packet loss impact
+        const Ie = 30 * Math.log(1 + 15 * loss);
+
+        // Calculate R
+        R = R - Id - Ie;
+
+        // Clamp R
+        if (R < 0) R = 0;
+        if (R > 100) R = 100;
+
+        // Convert R to MOS
+        let mos = 1;
+        if (R > 80) {
+            mos = R / 23.4 + 0.7; // Linear Approx for high quality
+            if (mos > 4.5) mos = 4.5; // Max MOS is usually 4.5 (or 5 theoretical)
+        } else if (R > 6.5) {
+            mos = 1 + (0.035) * R + (R * (R - 60) * (100 - R) * 7e-6);
+        }
+
+        // Clamp MOS 1-5
+        if (mos < 1) mos = 1;
+        if (mos > 5) mos = 5;
+
+        return mos;
+    };
+
+    const mosScore = calculateMOS(avgRtt, avgJitter, avgLoss);
+
+    const mosClass = (score: number) => {
+        if (score >= 4.0) return '#23a559'; // Green
+        if (score >= 3.0) return '#f0a030'; // Yellow
+        if (score >= 2.0) return '#f23f43'; // Red
+        return '#ed4245';
+    };
+
     return (
         <div className="analytics-dashboard">
             <div className="analytics-header">
@@ -125,6 +177,13 @@ export const AnalyticsDashboard: React.FC<Props> = ({ userId }) => {
                 <div className="analytics-content">
                     {/* KPI Cards */}
                     <div className="analytics-kpi-grid">
+                        <div className="analytics-kpi-card" style={{ borderLeft: `3px solid ${mosClass(mosScore)}` }}>
+                            <div className="kpi-label">Ocena Sieci (MOS)</div>
+                            <div className="kpi-value" style={{ color: mosClass(mosScore) }}>
+                                {mosScore.toFixed(2)}
+                                <span className="kpi-unit">/ 5.0</span>
+                            </div>
+                        </div>
                         <div className="analytics-kpi-card">
                             <div className="kpi-label">Średni RTT (Ping)</div>
                             <div className="kpi-value">

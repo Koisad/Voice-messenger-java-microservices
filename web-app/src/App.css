@@ -83,6 +83,7 @@ html,
 
 .analytics-icon {
     margin-top: auto;
+    background: transparent !important;
 }
 
 .logout-icon:hover {
