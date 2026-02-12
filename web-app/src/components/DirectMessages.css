@@ -3,6 +3,9 @@
     flex-direction: column;
     height: 100%;
     background: #36393f;
+    width: 33.33vw;
+    min-width: 300px;
+    border-right: 1px solid #202225;
 }
 
 .dm-header {
@@ -92,12 +95,17 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .dm-info .dm-friend-name {
     color: #dcddde;
     font-size: 15px;
     font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .dm-hint {
