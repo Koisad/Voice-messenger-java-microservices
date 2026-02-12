@@ -17,6 +17,13 @@ import { LoginPage } from './components/LoginPage';
 import { ToastContainer } from './components/ToastContainer';
 import { useToast } from './hooks/useToast';
 import { AnalyticsDashboard } from './components/AnalyticsDashboard';
+import { useAnalyticsReporter } from './hooks/useAnalyticsReporter';
+
+// Wrapper component — must be inside <LiveKitRoom> to access Room context
+function AnalyticsReporterInRoom({ serverId, userToken }: { serverId: string | null; userToken?: string }) {
+    useAnalyticsReporter({ serverId, userToken });
+    return null;
+}
 
 export default function App() {
     const auth = useAuth();
@@ -651,6 +658,7 @@ export default function App() {
                                 onError={(err) => console.error("LiveKit Error:", err)}
                             >
                                 <VideoConference />
+                                <AnalyticsReporterInRoom serverId={selectedServerId} userToken={auth.user?.access_token} />
                             </LiveKitRoom>
                         </div>
                         <div className="voice-chat-sidebar">
