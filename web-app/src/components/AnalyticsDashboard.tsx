@@ -141,21 +141,7 @@ export const AnalyticsDashboard: React.FC<Props> = ({ userId }) => {
         return parseFloat(Math.max(1, Math.min(4.5, mos)).toFixed(2));
     };
 
-    // Filter metrics for MOS (last 5 minutes)
-    const now = Date.now();
-    const metrics5m = metrics.filter(m => new Date(m.timestamp).getTime() > now - 5 * 60 * 1000);
-
-    // If no recent data, use all data or 0? 
-    // If connection is fairly new, metrics5m might be same as metrics.
-    // If connection is long, metrics5m is subset.
-    // If no data in last 5m (idle), use 0 (which results in perfect MOS) or handle graceful?
-    // If empty, averages are 0. RTT 0 -> MOS ~4.5. Correct.
-
-    const avgRtt5m = avg(metrics5m.map(m => m.rtt));
-    const avgJitter5m = avg(metrics5m.map(m => m.jitter));
-    const avgLoss5m = avg(metrics5m.map(m => m.packetLossRatio));
-
-    const mosScore = calculateMOS(avgRtt5m, avgJitter5m, avgLoss5m);
+    const mosScore = calculateMOS(avgRtt, avgJitter, avgLoss);
 
     const mosClass = (score: number) => {
         if (score >= 4.0) return '#23a559'; // Green
