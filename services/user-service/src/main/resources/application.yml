@@ -1,0 +1,30 @@
+server:
+  port: 8087
+
+spring:
+  application:
+    name: user-service
+  data:
+    mongodb:
+      uri: mongodb://${MONGO_USER}:${MONGO_PASS}@${DB_HOST}:${MONGO_PORT}/user_db?authSource=admin
+      auto-index-creation: true
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST}
+    port: ${SPRING_RABBITMQ_PORT}
+    username: ${SPRING_RABBITMQ_USERNAME}
+    password: ${SPRING_RABBITMQ_PASSWORD}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI}
+          jwk-set-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
+  endpoint:
+    health:
+      show-details: always

@@ -23,6 +23,7 @@ services:
       - AI_URI=http://ai-service:8084
       - ANALYTICS_URI=http://analytics-service:8085
       - ROOM_URI=http://room-service:8086
+      - USER_URI=http://user-service:8087
       - MEDIA_URI=http://media-service:8888
       - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=https://auth.voicemessenger.mywire.org/realms/voice-messenger
@@ -204,6 +205,28 @@ services:
       - "127.0.0.1:7880:7880"
       - "7881:7881"
       - "50000-50050:50000-50050/udp"
+    networks:
+      - app-net
+
+  user-service:
+    container_name: user-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_PATH: services/user-service
+    environment:
+      - INFRA_HOST=${INFRA_HOST}
+      - DB_HOST=${INFRA_HOST}
+      - MONGO_PORT=${MONGO_PORT_USERS}
+      - MONGO_USER=${MONGO_ROOT_USER}
+      - MONGO_PASS=${MONGO_ROOT_PASSWORD}
+      - SPRING_RABBITMQ_HOST=${INFRA_HOST}
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=${RABBITMQ_USER}
+      - SPRING_RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=https://auth.voicemessenger.mywire.org/realms/voice-messenger
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://keycloak:9090/realms/voice-messenger/protocol/openid-connect/certs
     networks:
       - app-net
 
