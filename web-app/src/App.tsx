@@ -378,6 +378,7 @@ export default function App() {
     // Helper for voice connection
     const connectToVoiceChannel = (channelId: string) => {
         const displayName = currentUser?.displayName || auth.user?.profile.preferred_username || "User";
+        console.log('[App] Connecting to voice channel:', channelId, 'as:', displayName);
         api.getLiveKitToken(channelId, displayName)
             .then(data => {
                 setLiveKitToken(data.token);
@@ -969,7 +970,7 @@ export default function App() {
                                                         <img src={avatarUrl} alt={msg.senderUsername} className="user-avatar-img" />
                                                     ) : (
                                                         <div className="user-avatar-placeholder">
-                                                            {(msg.senderUsername || "?").substring(0, 2).toUpperCase()}
+                                                            {(sender?.displayName || msg.senderUsername || "?").substring(0, 1).toUpperCase()}
                                                         </div>
                                                     );
                                                 })()}
@@ -977,7 +978,13 @@ export default function App() {
                                             <div className="message-content">
                                                 <div className="message-header">
                                                     <span className="author">
-                                                        {msg.senderUsername || (msg.senderId.length > 20 ? msg.senderId.substring(0, 8) + '...' : msg.senderId)}
+                                                        {(() => {
+                                                            const member = members.find(m => m.userId === msg.senderId);
+                                                            const isMe = currentUser?.id === msg.senderId;
+                                                            // Logic copied from main chat to ensure consistency
+                                                            const name = member?.displayName || (isMe ? currentUser?.displayName : null) || msg.senderUsername || (msg.senderId.length > 20 ? msg.senderId.substring(0, 8) + '...' : msg.senderId);
+                                                            return name;
+                                                        })()}
                                                     </span>
                                                     <span className="time">{new Date(msg.timestamp).toLocaleTimeString()}</span>
                                                     {toxic && <span className="toxic-badge"><AlertTriangle size={14} /> Potencjalnie wulgarna</span>}
