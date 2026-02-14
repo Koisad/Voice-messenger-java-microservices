@@ -31,7 +31,7 @@ export const UserBar: React.FC<UserBarProps> = ({ currentUser, onOpenSettings })
                         color: 'white',
                         fontSize: '14px'
                     }}>
-                        {(currentUser?.displayName || currentUser?.username || "?").substring(0, 2).toUpperCase()}
+                        {(currentUser?.displayName || currentUser?.username || "?").substring(0, 1).toUpperCase()}
                     </div>
                 )}
                 <div className="status-indicator online" style={{

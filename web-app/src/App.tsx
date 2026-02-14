@@ -903,6 +903,13 @@ export default function App() {
                     <div className="welcome">
                         <h2>Witaj w Voice Messenger 👋</h2>
                         <p>Wybierz serwer z lewej strony lub stwórz nowy.</p>
+
+                        <div style={{ marginTop: '20px', padding: '10px', background: 'var(--bg-secondary)', borderRadius: '8px', minWidth: '300px' }}>
+                            <UserBar
+                                currentUser={currentUser}
+                                onOpenSettings={() => setShowSettingsModal(true)}
+                            />
+                        </div>
                     </div>
                 ) : selectedChannel?.type === 'VOICE' && !isVoiceActive ? (
                     <div className="welcome">
