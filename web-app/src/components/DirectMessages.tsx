@@ -12,6 +12,8 @@ interface DirectMessagesProps {
     onStartCall?: (friendId: string, friendUsername: string) => void;
     onBack: () => void;
     onChannelSelect?: (channelId: string | null) => void;
+    unreadCounts?: Record<string, number>;
+    fetchUnreadCounts?: (channelIds: string[], ignoreChannelId?: string) => Promise<void>;
 }
 
 export const DirectMessages: React.FC<DirectMessagesProps> = ({
@@ -20,9 +22,13 @@ export const DirectMessages: React.FC<DirectMessagesProps> = ({
     userToken,
     // onStartCall, // DISABLED
     onBack,
-    onChannelSelect
+    onChannelSelect,
+    unreadCounts = {},
+    fetchUnreadCounts
 }) => {
-    const [friends, setFriends] = useState<Friendship[]>([]);
+    // Extend Friendship with channelId
+    type FriendWithChannel = Friendship & { channelId?: string };
+    const [friends, setFriends] = useState<FriendWithChannel[]>([]);
     const [selectedFriend, setSelectedFriend] = useState<{ id: string; username: string; channelId: string } | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const [messageInput, setMessageInput] = useState('');
@@ -68,13 +74,33 @@ export const DirectMessages: React.FC<DirectMessagesProps> = ({
     const loadFriends = async () => {
         try {
             const allFriendships = await api.getFriends();
-            setFriends(allFriendships.filter(f => f.status === 'FRIENDS'));
+            const validFriends: FriendWithChannel[] = allFriendships.filter(f => f.status === 'FRIENDS');
+
+            // Map friend IDs to channel IDs in parallel
+            const friendsWithChannels = await Promise.all(validFriends.map(async (f) => {
+                try {
+                    const friendId = f.requesterId === currentUserId ? f.addresseeId : f.requesterId;
+                    const { channelId } = await api.getDMChannel(friendId);
+                    return { ...f, channelId };
+                } catch (e) {
+                    return f;
+                }
+            }));
+
+            setFriends(friendsWithChannels);
+
+            if (fetchUnreadCounts) {
+                const channelIds = friendsWithChannels.map(f => f.channelId).filter((id): id is string => !!id);
+                if (channelIds.length > 0) {
+                    fetchUnreadCounts(channelIds);
+                }
+            }
         } catch (err) {
             console.error('Failed to load friends:', err);
         }
     };
 
-    const selectFriend = async (friendship: Friendship) => {
+    const selectFriend = async (friendship: FriendWithChannel) => {
         const friendId = friendship.requesterId === currentUserId
             ? friendship.addresseeId
             : friendship.requesterId;
@@ -83,9 +109,19 @@ export const DirectMessages: React.FC<DirectMessagesProps> = ({
             : friendship.requesterUsername;
 
         try {
-            const { channelId } = await api.getDMChannel(friendId);
-            setSelectedFriend({ id: friendId, username: friendUsername, channelId });
-            if (onChannelSelect) onChannelSelect(channelId);
+            // Use cached channelId if available, otherwise fetch
+            let channelId = friendship.channelId;
+            if (!channelId) {
+                const res = await api.getDMChannel(friendId);
+                channelId = res.channelId;
+                // Update state to cache it
+                setFriends(prev => prev.map(f => f.id === friendship.id ? { ...f, channelId } : f));
+            }
+
+            if (channelId) {
+                setSelectedFriend({ id: friendId, username: friendUsername, channelId });
+                if (onChannelSelect) onChannelSelect(channelId);
+            }
         } catch (err) {
             console.error('Failed to get DM channel:', err);
         }
@@ -243,8 +279,18 @@ export const DirectMessages: React.FC<DirectMessagesProps> = ({
                             >
                                 <div className="message-avatar" />
                                 <div className="dm-info">
-                                    <span className="dm-friend-name">{friend.username}</span>
-                                    <span className="dm-hint">Kliknij, aby otworzyć czat</span>
+                                    <span className="dm-friend-name" style={{
+                                        fontWeight: (friendship.channelId && unreadCounts[friendship.channelId]) ? 'bold' : 'normal'
+                                    }}>
+                                        {friend.username}
+                                    </span>
+                                    {friendship.channelId && unreadCounts[friendship.channelId] ? (
+                                        <span className="unread-badge">
+                                            {unreadCounts[friendship.channelId] > 99 ? '99+' : unreadCounts[friendship.channelId]}
+                                        </span>
+                                    ) : (
+                                        <span className="dm-hint">Kliknij, aby otworzyć czat</span>
+                                    )}
                                 </div>
                             </div>
                         );

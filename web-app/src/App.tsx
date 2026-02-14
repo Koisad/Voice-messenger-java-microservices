@@ -3,7 +3,7 @@ import { useAuth } from 'react-oidc-context';
 import { LiveKitRoom } from '@livekit/components-react';
 import '@livekit/components-styles';
 import { api } from './api/client';
-import type { Server, Message, MemberDTO } from './types';
+import type { Server, Message, MemberDTO, User } from './types';
 import './App.css';
 import { Hash, Volume2, Plus, LogOut, Copy, Users, MessageCircle, AlertTriangle, Eye, EyeOff, Trash2, UserX, DoorOpen, BarChart3 } from 'lucide-react';
 import { useChatSocket } from './hooks/useChatSocket';
@@ -20,6 +20,7 @@ import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import { ServerAnalyticsPanel } from './components/ServerAnalyticsPanel';
 import { useAnalyticsReporter } from './hooks/useAnalyticsReporter';
 import { CustomVideoConference } from './components/CustomVideoConference';
+import { useUnreadMessages } from './hooks/useUnreadMessages';
 
 // Wrapper component — must be inside <LiveKitRoom> to access Room context
 function AnalyticsReporterInRoom({ roomId, mediaServerUrl, userToken }: { roomId: string | null; mediaServerUrl: string; userToken?: string }) {
@@ -35,7 +36,9 @@ export default function App() {
     const [servers, setServers] = useState<Server[]>([]);
     const [messages, setMessages] = useState<Message[]>([]);
     const [members, setMembers] = useState<MemberDTO[]>([]);
+    const [currentUser] = useState<User | null>(null);
     const { toasts, showToast, removeToast } = useToast();
+    const { unreadCounts, fetchUnreadCounts, incrementUnreadCount, markAsRead } = useUnreadMessages(currentUserId);
 
     // --- STAN UI ---
     type ViewMode = 'servers' | 'friends' | 'dms' | 'analytics';
@@ -117,6 +120,42 @@ export default function App() {
     // Znajdź obiekt kanału, który jest aktualnie czatem (dla nazwy itp.)
     const chatChannel = selectedServer?.channels.find(c => c.id === chatChannelId);
 
+    // Fetch unread counts when server is selected
+    useEffect(() => {
+        if (selectedServerId && selectedServer) {
+            const channelIds = selectedServer.channels.map(c => c.id);
+            // Pass chatChannelId to ignore it in the unread counts update (avoid race condition)
+            fetchUnreadCounts(channelIds, chatChannelId || undefined);
+        }
+    }, [selectedServerId, selectedServer, chatChannelId, fetchUnreadCounts]);
+
+    // Mark as read when channel changes
+    // Mark as read when channel changes OR view mode changes (e.g. switching tabs)
+    useEffect(() => {
+        const isServerView = viewMode === 'servers';
+        if (chatChannelId && isServerView) {
+            markAsRead(chatChannelId);
+        }
+        return () => {
+            if (chatChannelId && isServerView) {
+                markAsRead(chatChannelId);
+            }
+        };
+    }, [chatChannelId, viewMode, markAsRead]);
+
+    // Same for DMs
+    useEffect(() => {
+        const isDMView = viewMode === 'dms';
+        if (activeDMChannelId && isDMView) {
+            markAsRead(activeDMChannelId);
+        }
+        return () => {
+            if (activeDMChannelId && isDMView) {
+                markAsRead(activeDMChannelId);
+            }
+        };
+    }, [activeDMChannelId, viewMode, markAsRead]);
+
     // --- WEBRTC CALL ---
     const webrtcCall = useWebRTCCall({
         userToken: auth.user?.access_token,
@@ -189,7 +228,11 @@ export default function App() {
             // data matches { serverId, channelId, senderId, senderUsername, content }
 
             // 1. Ignore own messages
-            if (data.senderId === currentUserId) return;
+            // Check both ID and username to be robust against format mismatches. 
+            // Also check against backend User ID (currentUser.id) if available.
+            const isSelf = data.senderId === currentUserId ||
+                data.senderUsername === auth.user?.profile.preferred_username ||
+                (currentUser && data.senderId === currentUser.id);
 
             // 2. Check if we are currently viewing this channel
             // We are viewing if viewMode is 'servers', selectedServerId matches, AND chatChannelId matches logic.
@@ -198,12 +241,32 @@ export default function App() {
                 selectedServerId === data.serverId &&
                 chatChannelId === data.channelId;
 
-            if (isViewing) return;
+            if (isSelf) {
+                if (isViewing) {
+                    // Even if it's our own message, ensure backend knows we read it up to this point
+                    markAsRead(data.channelId);
+                }
+                return;
+            }
+
+            // DEBUG: Show toast if message is from self but check failed
+            if (data.senderUsername === auth.user?.profile.preferred_username) {
+                showToast(`DEBUG: Self-message not ignored! ID: ${data.senderId}, Current: ${currentUserId}, Backend: ${currentUser?.id}`, 'error');
+            }
+
+            if (isViewing) {
+                // If we are viewing, mark as read immediately to update backend state
+                markAsRead(data.channelId);
+                return;
+            }
 
             // 3. Find channel name for better toast
             const server = servers.find(s => s.id === data.serverId);
             const channel = server?.channels.find(c => c.id === data.channelId);
             const channelName = channel?.name || data.channelId;
+
+            // Increment unread count if not viewing
+            incrementUnreadCount(data.channelId);
 
             showToast(`#${channelName}: ${data.content}`, 'message');
         }
@@ -237,17 +300,45 @@ export default function App() {
         onDMReceived: (data) => {
             // Check if we are currently viewing this DM
             const isViewing = viewMode === 'dms' && activeDMChannelId === data.channelId;
-            if (isViewing) return;
+
+            // Ignore own messages for unread count
+            const myId = auth.user?.profile.sub;
+            const myUsername = auth.user?.profile.preferred_username;
+
+            const isSelf = data.senderId === myId ||
+                data.senderName === myUsername ||
+                (currentUser && data.senderId === currentUser.id);
+
+            if (isSelf) {
+                if (isViewing && data.channelId) {
+                    markAsRead(data.channelId);
+                }
+                return;
+            }
+
+            if (isViewing) {
+                if (data.channelId) markAsRead(data.channelId);
+                return;
+            }
 
             showToast(`${data.senderName}: ${data.content}`, 'message');
+            // TODO: Handle DM unread counts (requires DM channel ID management in useUnreadMessages or separate logic)
+            // For now, focusing on server channels per user request emphasis on "chat-service" context usually implied there.
+            // But if data.channelId is available, we can try matching it.
+            if (data.channelId) {
+                incrementUnreadCount(data.channelId);
+            }
         }
     });
 
     // 1. Inicjalizacja po zalogowaniu + sync użytkownika
+    // 1. Inicjalizacja po zalogowaniu + sync użytkownika
     useEffect(() => {
         if (auth.isAuthenticated) {
             api.syncUser()
-                .then(() => console.log('[AppUser] Sync successful'))
+                .then(() => {
+                    console.log('[AppUser] Sync completed');
+                })
                 .catch(err => console.error('[AppUser] Sync failed:', err));
             loadServers();
             window.history.replaceState({}, document.title, window.location.pathname);
@@ -649,7 +740,14 @@ export default function App() {
                             >
                                 <span className="channel-item-name">
                                     {channel.type === 'VOICE' ? <Volume2 size={18} /> : <Hash size={18} />}
-                                    {channel.name}
+                                    <span style={{ fontWeight: (unreadCounts[channel.id] || 0) > 0 ? 'bold' : 'normal' }}>
+                                        {channel.name}
+                                    </span>
+                                    {unreadCounts[channel.id] > 0 && (
+                                        <span className="unread-badge">
+                                            {unreadCounts[channel.id] > 99 ? '99+' : unreadCounts[channel.id]}
+                                        </span>
+                                    )}
                                 </span>
                                 {isServerOwner && (
                                     <button
@@ -724,7 +822,12 @@ export default function App() {
                     currentUsername={auth.user?.profile.preferred_username || ''}
                     userToken={auth.user?.access_token}
                     onBack={() => setViewMode('servers')}
-                    onChannelSelect={setActiveDMChannelId}
+                    onChannelSelect={(channelId) => {
+                        setActiveDMChannelId(channelId);
+                        if (channelId) markAsRead(channelId);
+                    }}
+                    unreadCounts={unreadCounts}
+                    fetchUnreadCounts={fetchUnreadCounts}
                 />
             )}
 
@@ -776,7 +879,20 @@ export default function App() {
                         <div className="voice-chat-sidebar">
                             <header className="chat-header">
                                 <Hash size={24} color="#949ba4" />
-                                <span>{chatChannel?.name || "Czat"}</span>
+                                <select
+                                    className="channel-switcher"
+                                    value={chatChannelId || ""}
+                                    onChange={(e) => setChatChannelId(e.target.value)}
+                                >
+                                    {selectedServer?.channels
+                                        .filter(c => c.type === 'TEXT')
+                                        .map(c => (
+                                            <option key={c.id} value={c.id}>
+                                                {c.name} {unreadCounts[c.id] > 0 ? `(${unreadCounts[c.id]})` : ''}
+                                            </option>
+                                        ))
+                                    }
+                                </select>
                             </header>
 
                             <div className="messages-list">
