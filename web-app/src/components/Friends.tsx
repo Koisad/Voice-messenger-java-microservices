@@ -76,7 +76,9 @@ export const Friends: React.FC<FriendsProps> = ({ currentUserId, onStartDM, onSt
             // Map User[] to FriendUser[] to match state type
             const mappedResults: FriendUser[] = results.map(u => ({
                 userId: u.id,
-                username: u.username
+                username: u.username,
+                displayName: u.displayName,
+                avatarUrl: u.avatarUrl
             }));
 
             // Filter out current user and existing friends
@@ -96,7 +98,7 @@ export const Friends: React.FC<FriendsProps> = ({ currentUserId, onStartDM, onSt
         setLoading(true);
         try {
             await api.sendFriendRequest(user.userId, user.username);
-            showToast(`Wysłano zaproszenie do ${user.username}`, 'success');
+            showToast(`Wysłano zaproszenie do ${user.displayName || user.username}`, 'success');
             setSearchQuery('');
             setSearchResults([]);
         } catch (err) {
@@ -153,7 +155,7 @@ export const Friends: React.FC<FriendsProps> = ({ currentUserId, onStartDM, onSt
     };
 
     const onRemoveClick = (friendship: Friendship) => {
-        setFriendToRemove({ friendship, name: friendship.friendUsername });
+        setFriendToRemove({ friendship, name: friendship.friendDisplayName || friendship.friendUsername });
     };
 
     // Helper removed as Friendship DTO now has flattened friend info
@@ -184,8 +186,16 @@ export const Friends: React.FC<FriendsProps> = ({ currentUserId, onStartDM, onSt
                         <h3>Wyniki wyszukiwania</h3>
                         {searchResults.map(user => (
                             <div key={user.userId} className="friend-item">
-                                <div className="message-avatar" />
-                                <span className="friend-name">{user.username}</span>
+                                <div className="message-avatar">
+                                    {user.avatarUrl ? (
+                                        <img src={user.avatarUrl} alt={user.username} className="user-avatar-img" />
+                                    ) : (
+                                        <div className="user-avatar-placeholder">
+                                            {(user.displayName || user.username || "?").substring(0, 2).toUpperCase()}
+                                        </div>
+                                    )}
+                                </div>
+                                <span className="friend-name">{user.displayName || user.username}</span>
                                 <button
                                     className="btn-icon"
                                     onClick={() => handleSendRequest(user)}
@@ -231,11 +241,11 @@ export const Friends: React.FC<FriendsProps> = ({ currentUserId, onStartDM, onSt
                                             <img src={friendship.friendAvatarUrl} alt={friendship.friendUsername} className="user-avatar-img" />
                                         ) : (
                                             <div className="user-avatar-placeholder">
-                                                {(friendship.friendUsername || "?").substring(0, 2).toUpperCase()}
+                                                {(friendship.friendDisplayName || friendship.friendUsername || "?").substring(0, 2).toUpperCase()}
                                             </div>
                                         )}
                                     </div>
-                                    <span className="friend-name">{friendship.friendUsername}</span>
+                                    <span className="friend-name">{friendship.friendDisplayName || friendship.friendUsername}</span>
                                     <div className="friend-actions">
                                         {onStartCall && (
                                             <button

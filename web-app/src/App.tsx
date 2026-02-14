@@ -1057,7 +1057,7 @@ export default function App() {
                                 )}
                             </div>
                             <div className="member-info">
-                                <span className="member-name">{m.username}</span>
+                                <span className="member-name">{m.displayName || m.username}</span>
                                 <span className={`member-role-badge ${m.role === 'OWNER' ? 'role-owner' : 'role-member'}`}>
                                     {m.role === 'OWNER' ? 'Właściciel' : 'Członek'}
                                 </span>
