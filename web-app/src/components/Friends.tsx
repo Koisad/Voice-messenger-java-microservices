@@ -284,7 +284,15 @@ export const Friends: React.FC<FriendsProps> = ({ currentUserId, onStartDM, onSt
                         ) : (
                             requests.map(request => (
                                 <div key={request.id} className="friend-item">
-                                    <div className="message-avatar" />
+                                    <div className="message-avatar">
+                                        {request.friendAvatarUrl ? (
+                                            <img src={request.friendAvatarUrl} alt={request.friendUsername} className="user-avatar-img" />
+                                        ) : (
+                                            <div className="user-avatar-placeholder">
+                                                {(request.friendUsername || "?").substring(0, 2).toUpperCase()}
+                                            </div>
+                                        )}
+                                    </div>
                                     <div className="request-info">
                                         <span className="friend-name">{request.friendUsername}</span>
                                         <span className="request-label">wysłał zaproszenie</span>
