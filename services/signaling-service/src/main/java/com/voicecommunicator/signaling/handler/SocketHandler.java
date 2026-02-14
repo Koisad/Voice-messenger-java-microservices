@@ -41,17 +41,19 @@ public class SocketHandler extends TextWebSocketHandler {
             signalMessage.setSender(senderId);
 
             String targetUser = signalMessage.getTarget();
-            WebSocketSession targetSession = sessions.get(targetUser);
+            if (targetUser != null) {
+                WebSocketSession targetSession = sessions.get(targetUser);
 
-            if ("offer".equals(signalMessage.getType()) ||
-                    "answer".equals(signalMessage.getType()) ||
-                    "ice-candidate".equals(signalMessage.getType())) {
+                if ("offer".equals(signalMessage.getType()) ||
+                        "answer".equals(signalMessage.getType()) ||
+                        "ice-candidate".equals(signalMessage.getType())) {
 
-                if (targetSession != null && targetSession.isOpen()) {
-                    System.out.println("Passing " + signalMessage.getType() + " to " + targetUser);
-                    targetSession.sendMessage(new TextMessage(objectMapper.writeValueAsString(signalMessage)));
-                } else {
-                    System.out.println("User " + targetUser + " is not available");
+                    if (targetSession != null && targetSession.isOpen()) {
+                        System.out.println("Passing " + signalMessage.getType() + " to " + targetUser);
+                        targetSession.sendMessage(new TextMessage(objectMapper.writeValueAsString(signalMessage)));
+                    } else {
+                        System.out.println("User " + targetUser + " is not available");
+                    }
                 }
             }
         } catch (Exception e) {
