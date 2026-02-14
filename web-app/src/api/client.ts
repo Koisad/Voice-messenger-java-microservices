@@ -124,9 +124,7 @@ export const api = {
     updateProfile: async (displayName?: string, avatar?: File): Promise<User> => {
         const formData = new FormData();
         if (avatar) formData.append('avatar', avatar);
-
-        const url = new URL(`${window.location.protocol}//${window.location.host}${BASE_URL}/users/me`);
-        if (displayName) url.searchParams.append('displayName', displayName);
+        if (displayName) formData.append('displayName', displayName);
 
         const token = localStorage.getItem('access_token');
         const headers: HeadersInit = {};
@@ -134,7 +132,7 @@ export const api = {
             headers['Authorization'] = `Bearer ${token}`;
         }
 
-        const res = await fetch(url.toString(), {
+        const res = await fetch(`${BASE_URL}/users/me`, {
             method: 'PATCH',
             headers: headers,
             body: formData

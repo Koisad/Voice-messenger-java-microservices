@@ -1253,6 +1253,7 @@ export default function App() {
                         setShowSettingsModal(false);
                         showToast('Profil zaktualizowany', 'success');
                     }}
+                    onShowToast={showToast}
                 />
             )}
 

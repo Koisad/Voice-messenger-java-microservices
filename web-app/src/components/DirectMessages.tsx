@@ -280,16 +280,18 @@ export const DirectMessages: React.FC<DirectMessagesProps> = ({
                                 </div>
                                 <div className="dm-info">
                                     <span className="dm-friend-name" style={{
-                                        fontWeight: (friendship.id && unreadCounts[friendship.id]) ? 'bold' : 'normal'
+                                        fontWeight: (friendship.channelId && unreadCounts[friendship.channelId]) ? 'bold' : 'normal'
                                     }}>
-                                        {friendship.friendUsername}
+                                        {friendship.friendDisplayName || friendship.friendUsername}
                                     </span>
-                                    {friendship.id && unreadCounts[friendship.id] ? (
+                                    {friendship.channelId && unreadCounts[friendship.channelId] ? (
                                         <span className="unread-badge">
-                                            {unreadCounts[friendship.id] > 99 ? '99+' : unreadCounts[friendship.id]}
+                                            {unreadCounts[friendship.channelId] > 99 ? '99+' : unreadCounts[friendship.channelId]}
                                         </span>
                                     ) : (
-                                        <span className="dm-hint">Kliknij, aby otworzyć czat</span>
+                                        <div className="dm-status-text">
+                                            {friendship.friendUsername}
+                                        </div>
                                     )}
                                 </div>
                             </div>

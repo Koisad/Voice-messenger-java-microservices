@@ -7,9 +7,10 @@ interface UserSettingsModalProps {
     currentUser: User;
     onClose: () => void;
     onUpdate: (updatedUser: User) => void;
+    onShowToast: (message: string, type: 'success' | 'error') => void;
 }
 
-export function UserSettingsModal({ currentUser, onClose, onUpdate }: UserSettingsModalProps) {
+export function UserSettingsModal({ currentUser, onClose, onUpdate, onShowToast }: UserSettingsModalProps) {
     const [displayName, setDisplayName] = useState(currentUser.displayName || currentUser.username);
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(currentUser.avatarUrl || null);
@@ -34,11 +35,14 @@ export function UserSettingsModal({ currentUser, onClose, onUpdate }: UserSettin
             const nameToSend = displayName !== currentUser.displayName ? displayName : undefined;
             const updatedUser = await api.updateProfile(nameToSend, avatarFile || undefined);
             onUpdate(updatedUser);
+            // Success toast is handled by parent or here? Parent currently does it.
+            // But we can do it here if we want consistent feedback.
+            // The parent code in App.tsx shows "Profil zaktualizowany" on success callback.
+            // So we only handle error here.
             onClose();
         } catch (error) {
             console.error("Failed to update profile", error);
-            // You might want to show a toast here via a passed prop or context
-            alert("Failed to update profile");
+            onShowToast("Nie udało się zaktualizować profilu", "error");
         } finally {
             setIsLoading(false);
         }

@@ -177,6 +177,15 @@
     transition: all 0.2s;
 }
 
+
 .btn-send:hover {
     background: #4752c4;
+}
+
+.dm-status-text {
+    font-size: 13px;
+    color: #72767d;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
