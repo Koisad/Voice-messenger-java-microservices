@@ -26,9 +26,8 @@ public class ServerController {
 
         String serverName = createServerRequestDTO.getName();
         String userId = jwt.getSubject();
-        String username = jwt.getClaimAsString("preferred_username");
 
-        return ResponseEntity.ok(serverService.createServer(serverName, userId, username));
+        return ResponseEntity.ok(serverService.createServer(serverName, userId));
     }
 
     @GetMapping
@@ -41,8 +40,7 @@ public class ServerController {
     @PostMapping("/{serverId}/join")
     public ResponseEntity<Void> joinServer(@PathVariable String serverId, @AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
-        String username = jwt.getClaimAsString("preferred_username");
-        serverService.joinServer(serverId, userId, username);
+        serverService.joinServer(serverId, userId);
         return ResponseEntity.ok().build();
     }
 
