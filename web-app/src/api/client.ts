@@ -72,6 +72,24 @@ export const api = {
         return res.json();
     },
 
+    markChannelAsRead: async (channelId: string): Promise<void> => {
+        const res = await fetch(`${BASE_URL}/chat/read/${channelId}`, {
+            method: 'POST',
+            headers: getHeaders()
+        });
+        if (!res.ok) throw new Error('Failed to mark channel as read');
+    },
+
+    getUnreadCounts: async (channelIds: string[]): Promise<Record<string, number>> => {
+        const res = await fetch(`${BASE_URL}/chat/read/unread-counts`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ channelIds })
+        });
+        if (!res.ok) throw new Error('Failed to get unread counts');
+        return res.json();
+    },
+
     sendMessage: async (serverId: string, channelId: string, content: string): Promise<Message> => {
         const res = await fetch(`${BASE_URL}/chat/send`, {
             method: 'POST',

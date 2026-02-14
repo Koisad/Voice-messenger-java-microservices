@@ -20,6 +20,7 @@ import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import { ServerAnalyticsPanel } from './components/ServerAnalyticsPanel';
 import { useAnalyticsReporter } from './hooks/useAnalyticsReporter';
 import { CustomVideoConference } from './components/CustomVideoConference';
+import { useUnreadMessages } from './hooks/useUnreadMessages';
 
 // Wrapper component — must be inside <LiveKitRoom> to access Room context
 function AnalyticsReporterInRoom({ roomId, mediaServerUrl, userToken }: { roomId: string | null; mediaServerUrl: string; userToken?: string }) {
@@ -36,6 +37,7 @@ export default function App() {
     const [messages, setMessages] = useState<Message[]>([]);
     const [members, setMembers] = useState<MemberDTO[]>([]);
     const { toasts, showToast, removeToast } = useToast();
+    const { unreadCounts, fetchUnreadCounts, incrementUnreadCount, markAsRead } = useUnreadMessages(currentUserId);
 
     // --- STAN UI ---
     type ViewMode = 'servers' | 'friends' | 'dms' | 'analytics';
@@ -116,6 +118,21 @@ export default function App() {
     const selectedChannel = selectedServer?.channels.find(c => c.id === selectedChannelId);
     // Znajdź obiekt kanału, który jest aktualnie czatem (dla nazwy itp.)
     const chatChannel = selectedServer?.channels.find(c => c.id === chatChannelId);
+
+    // Fetch unread counts when server is selected
+    useEffect(() => {
+        if (selectedServerId && selectedServer) {
+            const channelIds = selectedServer.channels.map(c => c.id);
+            fetchUnreadCounts(channelIds);
+        }
+    }, [selectedServerId, selectedServer, fetchUnreadCounts]);
+
+    // Mark as read when channel changes
+    useEffect(() => {
+        if (chatChannelId) {
+            markAsRead(chatChannelId);
+        }
+    }, [chatChannelId, markAsRead]);
 
     // --- WEBRTC CALL ---
     const webrtcCall = useWebRTCCall({
@@ -205,6 +222,9 @@ export default function App() {
             const channel = server?.channels.find(c => c.id === data.channelId);
             const channelName = channel?.name || data.channelId;
 
+            // Increment unread count if not viewing
+            incrementUnreadCount(data.channelId);
+
             showToast(`#${channelName}: ${data.content}`, 'message');
         }
     });
@@ -240,6 +260,12 @@ export default function App() {
             if (isViewing) return;
 
             showToast(`${data.senderName}: ${data.content}`, 'message');
+            // TODO: Handle DM unread counts (requires DM channel ID management in useUnreadMessages or separate logic)
+            // For now, focusing on server channels per user request emphasis on "chat-service" context usually implied there.
+            // But if data.channelId is available, we can try matching it.
+            if (data.channelId) {
+                incrementUnreadCount(data.channelId);
+            }
         }
     });
 
@@ -649,7 +675,14 @@ export default function App() {
                             >
                                 <span className="channel-item-name">
                                     {channel.type === 'VOICE' ? <Volume2 size={18} /> : <Hash size={18} />}
-                                    {channel.name}
+                                    <span style={{ fontWeight: (unreadCounts[channel.id] || 0) > 0 ? 'bold' : 'normal' }}>
+                                        {channel.name}
+                                    </span>
+                                    {unreadCounts[channel.id] > 0 && (
+                                        <span className="unread-badge">
+                                            {unreadCounts[channel.id] > 99 ? '99+' : unreadCounts[channel.id]}
+                                        </span>
+                                    )}
                                 </span>
                                 {isServerOwner && (
                                     <button
