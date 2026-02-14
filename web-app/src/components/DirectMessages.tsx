@@ -298,8 +298,9 @@ export const DirectMessages: React.FC<DirectMessagesProps> = ({
                         ))
                     )}
                 </div>
-                <UserBar currentUser={currentUser} onOpenSettings={onOpenSettings} />
             </div>
+
+            <UserBar currentUser={currentUser} onOpenSettings={onOpenSettings} />
         </div >
     );
 };
