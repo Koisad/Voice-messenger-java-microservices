@@ -72,6 +72,8 @@ export interface Friendship {
 export interface FriendUser {
     userId: string;
     username: string;
+    displayName?: string;
+    avatarUrl?: string;
 }
 
 // DM types
