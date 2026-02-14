@@ -331,6 +331,29 @@ export default function App() {
             if (data.channelId) {
                 incrementUnreadCount(data.channelId);
             }
+        },
+        onUserUpdated: (data) => {
+            console.log('[App] User updated:', data);
+
+            // Update members list
+            setMembers(prev => prev.map(m => {
+                if (m.userId === data.userId) {
+                    return { ...m, displayName: data.displayName, avatarUrl: data.avatarUrl };
+                }
+                return m;
+            }));
+
+
+
+            // Update current user if it's me
+            // Note: We check against auth.user.profile.sub as currentUser might not be updated yet? 
+            // Actually currentUser is state, so it's fine.
+            setCurrentUser(prev => {
+                if (prev && prev.id === data.userId) {
+                    return { ...prev, displayName: data.displayName, avatarUrl: data.avatarUrl };
+                }
+                return prev;
+            });
         }
     });
 
@@ -999,7 +1022,12 @@ export default function App() {
                                         <div className="message-content">
                                             <div className="message-header">
                                                 <span className="author">
-                                                    {msg.senderUsername || (msg.senderId.length > 20 ? msg.senderId.substring(0, 8) + '...' : msg.senderId)}
+                                                    {(() => {
+                                                        const member = members.find(m => m.userId === msg.senderId);
+                                                        const isMe = currentUser?.id === msg.senderId;
+                                                        const name = member?.displayName || (isMe ? currentUser?.displayName : null) || msg.senderUsername || (msg.senderId.length > 20 ? msg.senderId.substring(0, 8) + '...' : msg.senderId);
+                                                        return name;
+                                                    })()}
                                                 </span>
                                                 <span className="time">{new Date(msg.timestamp).toLocaleTimeString()}</span>
                                                 {toxic && <span className="toxic-badge"><AlertTriangle size={14} /> Potencjalnie wulgarna</span>}

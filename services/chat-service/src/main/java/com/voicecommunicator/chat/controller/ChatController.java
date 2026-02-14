@@ -33,17 +33,16 @@ public class ChatController {
     // WebSocket
     @MessageMapping("/send/{serverId}/{channelId}")
     public void sendMessage(@DestinationVariable String serverId,
-                            @DestinationVariable String channelId,
-                            @Payload SendMessageRequestDTO request,
-                            Principal principal) {
+            @DestinationVariable String channelId,
+            @Payload SendMessageRequestDTO request,
+            Principal principal) {
 
         Message savedMessage = chatService.saveMessage(
                 principal.getName(),
                 request.getUsername(),
                 serverId,
                 channelId,
-                request.getContent()
-        );
+                request.getContent());
 
         String destination = String.format("/topic/server.%s.channel.%s", serverId, channelId);
         messagingTemplate.convertAndSend(destination, savedMessage);
