@@ -1088,11 +1088,14 @@ export default function App() {
                                             style={{ cursor: 'pointer' }}
                                             onClick={() => {
                                                 const sender = members.find(m => m.userId === msg.senderId);
+                                                const isMe = currentUser?.id === msg.senderId;
+                                                console.log('Clicked user:', msg.senderId, 'Found member:', sender, 'Is Me:', isMe);
+
                                                 handleViewProfile({
                                                     id: msg.senderId,
                                                     username: msg.senderUsername || msg.senderId,
-                                                    displayName: sender?.displayName || msg.senderDisplayName,
-                                                    avatarUrl: sender?.avatarUrl
+                                                    displayName: sender?.displayName || (isMe ? currentUser?.displayName : null) || msg.senderDisplayName,
+                                                    avatarUrl: sender?.avatarUrl || (isMe ? currentUser?.avatarUrl : undefined)
                                                 });
                                             }}
                                         >
@@ -1115,11 +1118,14 @@ export default function App() {
                                                     style={{ cursor: 'pointer' }}
                                                     onClick={() => {
                                                         const sender = members.find(m => m.userId === msg.senderId);
+                                                        const isMe = currentUser?.id === msg.senderId;
+                                                        console.log('Clicked author:', msg.senderId, 'Found member:', sender, 'Is Me:', isMe);
+
                                                         handleViewProfile({
                                                             id: msg.senderId,
                                                             username: msg.senderUsername || msg.senderId,
-                                                            displayName: sender?.displayName || msg.senderDisplayName,
-                                                            avatarUrl: sender?.avatarUrl
+                                                            displayName: sender?.displayName || (isMe ? currentUser?.displayName : null) || msg.senderDisplayName,
+                                                            avatarUrl: sender?.avatarUrl || (isMe ? currentUser?.avatarUrl : undefined)
                                                         });
                                                     }}
                                                 >

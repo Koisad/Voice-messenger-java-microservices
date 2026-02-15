@@ -240,7 +240,23 @@ export const DirectMessages: React.FC<DirectMessagesProps> = ({
                         const revealed = revealedToxicIds.has(msg.id);
                         return (
                             <div key={msg.id} className={`message-item ${toxic ? 'message-toxic' : ''}`}>
-                                <div className="message-avatar">
+                                <div
+                                    className="message-avatar"
+                                    style={{ cursor: 'pointer' }}
+                                    onClick={() => {
+                                        const friendInfo = friends.find(f => f.friendId === msg.senderId);
+                                        const isMe = currentUser?.id === msg.senderId;
+                                        // Fix: Use friendDisplayName if available, else fallback
+                                        const displayName = isMe ? currentUser?.displayName : (friendInfo?.friendDisplayName || msg.senderUsername);
+
+                                        onUserClick({
+                                            id: msg.senderId,
+                                            username: msg.senderUsername || msg.senderId,
+                                            displayName: displayName || msg.senderUsername, // Ensure we pass something
+                                            avatarUrl: isMe ? currentUser?.avatarUrl : friendInfo?.friendAvatarUrl
+                                        });
+                                    }}
+                                >
                                     {(() => {
                                         // Let's try to find friend info from 'friends' array
                                         const friendInfo = friends.find(f => f.friendId === msg.senderId);
@@ -251,7 +267,7 @@ export const DirectMessages: React.FC<DirectMessagesProps> = ({
                                             <img src={url} alt={msg.senderUsername} className="user-avatar-img" />
                                         ) : (
                                             <div className="user-avatar-placeholder">
-                                                {(msg.senderUsername || "?").substring(0, 1).toUpperCase()}
+                                                {(friendInfo?.friendDisplayName || msg.senderUsername || "?").substring(0, 1).toUpperCase()}
                                             </div>
                                         );
                                     })()}
@@ -261,12 +277,18 @@ export const DirectMessages: React.FC<DirectMessagesProps> = ({
                                         <span
                                             className="author"
                                             style={{ cursor: 'pointer' }}
-                                            onClick={() => onUserClick({
-                                                id: msg.senderId,
-                                                username: msg.senderUsername || msg.senderId,
-                                                displayName: msg.senderDisplayName,
-                                                avatarUrl: msg.senderId === currentUser.id ? currentUser.avatarUrl : (friends.find(f => f.friendId === msg.senderId)?.friendAvatarUrl)
-                                            })}
+                                            onClick={() => {
+                                                const friendInfo = friends.find(f => f.friendId === msg.senderId);
+                                                const isMe = currentUser?.id === msg.senderId;
+                                                const displayName = isMe ? currentUser?.displayName : (friendInfo?.friendDisplayName || msg.senderUsername);
+
+                                                onUserClick({
+                                                    id: msg.senderId,
+                                                    username: msg.senderUsername || msg.senderId,
+                                                    displayName: displayName || msg.senderUsername,
+                                                    avatarUrl: isMe ? currentUser?.avatarUrl : friendInfo?.friendAvatarUrl
+                                                });
+                                            }}
                                         >
                                             {msg.senderUsername || (msg.senderId.length > 20 ? msg.senderId.substring(0, 8) + '...' : msg.senderId)}
                                         </span>
