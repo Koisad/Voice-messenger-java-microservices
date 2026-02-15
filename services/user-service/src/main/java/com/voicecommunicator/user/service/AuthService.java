@@ -20,9 +20,6 @@ public class AuthService {
     private final AppUserRepository appUserRepository;
     private final RabbitTemplate rabbitTemplate;
 
-    @Value("${app.default-avatar-url}")
-    private String defaultAvatarUrl;
-
     @Transactional
     public void registerUser(RegisterRequestDTO request) {
         log.info("Starting registration for user: {}", request.getUsername());
@@ -38,7 +35,6 @@ public class AuthService {
                 .username(request.getUsername())
                 .email(request.getEmail())
                 .displayName(request.getUsername())
-                .avatarUrl(defaultAvatarUrl)
                 .build();
 
         appUserRepository.save(appUser);
@@ -47,7 +43,7 @@ public class AuthService {
                 userId,
                 request.getUsername(),
                 request.getUsername(),
-                defaultAvatarUrl
+                null
         );
         rabbitTemplate.convertAndSend("internal.exchange", "user.updated", event);
 
