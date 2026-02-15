@@ -543,6 +543,31 @@ html,
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.modal-header h2 {
+    margin: 0;
+}
+
+.modal-header .icon-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-header .icon-btn:hover {
+    color: var(--text-primary);
+}
+
 .input-field {
     width: 100%;
     padding: 10px;

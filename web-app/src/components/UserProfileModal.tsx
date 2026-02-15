@@ -10,9 +10,9 @@ export function UserProfileModal({ user, onClose }: UserProfileModalProps) {
     return (
         <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
             <div className="modal-content settings-modal" style={{ maxWidth: '400px' }}>
-                <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <h2 style={{ margin: 0 }}>Profil Użytkownika</h2>
-                    <button className="icon-btn" onClick={onClose} style={{ backgroundColor: 'transparent', border: 'none', color: '#b9bbbe', cursor: 'pointer' }}><X size={24} /></button>
+                <div className="modal-header">
+                    <h2>Profil Użytkownika</h2>
+                    <button className="icon-btn" onClick={onClose}><X size={24} /></button>
                 </div>
 
                 <div className="avatar-section" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '20px' }}>

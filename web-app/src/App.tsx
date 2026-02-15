@@ -1496,7 +1496,10 @@ export default function App() {
                 <InviteFriendsModal
                     serverName={selectedServer.name}
                     serverId={selectedServerId}
+                    existingMemberIds={new Set(members.map(m => m.userId))}
                     onClose={() => setShowInviteModal(false)}
+                    userToken={auth.user?.access_token}
+                    currentUsername={currentUser?.username || auth.user?.profile.preferred_username}
                 />
             )}
         </div >
