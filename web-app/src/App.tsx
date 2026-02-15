@@ -70,6 +70,24 @@ export default function App() {
     const [showSettingsModal, setShowSettingsModal] = useState(false);
     const [viewedUser, setViewedUser] = useState<User | null>(null);
 
+    // --- INVITE SYSTEM ---
+    const [showInviteModal, setShowInviteModal] = useState(false);
+
+    // Check for ?joinServer=SERVER_ID
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const joinServerId = params.get('joinServer');
+        if (joinServerId && auth.isAuthenticated) {
+            // Auto-open join modal or try to join
+            // Using the existing modal logic:
+            setModalMode('JOIN');
+            setInputVal(joinServerId);
+            setShowModal(true);
+            // Optionally clear the URL param to avoid reopening on refresh
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }, [auth.isAuthenticated]);
+
     const handleViewProfile = (user: User) => {
         // Ensure we have at least partial data. If we have an ID but missing other fields, 
         // the modal might show placeholders which is fine.
@@ -629,23 +647,7 @@ export default function App() {
 
     const isServerOwner = selectedServer?.ownerId === currentUserId;
 
-    // --- INVITE SYSTEM ---
-    const [showInviteModal, setShowInviteModal] = useState(false);
 
-    // Check for ?joinServer=SERVER_ID
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        const joinServerId = params.get('joinServer');
-        if (joinServerId && auth.isAuthenticated) {
-            // Auto-open join modal or try to join
-            // Using the existing modal logic:
-            setModalMode('JOIN');
-            setInputVal(joinServerId);
-            setShowModal(true);
-            // Optionally clear the URL param to avoid reopening on refresh
-            window.history.replaceState({}, document.title, window.location.pathname);
-        }
-    }, [auth.isAuthenticated]);
 
     const handleAddChannel = async (e: React.FormEvent) => {
         e.preventDefault();
