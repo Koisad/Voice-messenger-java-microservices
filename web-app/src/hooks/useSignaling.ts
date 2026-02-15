@@ -45,7 +45,7 @@ export const useSignaling = ({
         console.log('[Signaling] Initializing STOMP connection...');
 
         const client = new Client({
-            webSocketFactory: () => new SockJS(`${window.location.origin}/ws`),
+            webSocketFactory: () => new SockJS(`${window.location.origin}/ws/signal`),
             connectHeaders: {
                 Authorization: `Bearer ${userToken}`,
             },

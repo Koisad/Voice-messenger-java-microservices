@@ -19,7 +19,7 @@ services:
       - "127.0.0.1:8080:8080"
     environment:
       - CHAT_URI=http://chat-service:8082
-      - SIGNALING_URI=ws://signaling-service:8083
+      - SIGNALING_URI=http://signaling-service:8083
       - AI_URI=http://ai-service:8084
       - ANALYTICS_URI=http://analytics-service:8085
       - ROOM_URI=http://room-service:8086
