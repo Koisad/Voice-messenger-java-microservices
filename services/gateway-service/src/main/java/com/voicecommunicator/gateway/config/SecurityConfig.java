@@ -24,9 +24,9 @@ public class SecurityConfig {
                         .pathMatchers("/ws/**").permitAll()
                         .pathMatchers("/ws/signal/**").permitAll()
                         .pathMatchers("/actuator/**").permitAll()
+                        .pathMatchers("/api/auth/register").permitAll()
                         .pathMatchers(org.springframework.http.HttpMethod.OPTIONS).permitAll()
-                        .anyExchange().authenticated()
-                )
+                        .anyExchange().authenticated())
 
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {}));
 
