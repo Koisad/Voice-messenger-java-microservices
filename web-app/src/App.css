@@ -318,7 +318,8 @@ html,
     display: flex;
     gap: 12px;
     padding-left: 16px;
-    /* Ensure padding is applied */
+    padding-right: 16px;
+    /* Ensure padding is applied on both sides */
 }
 
 .message-content {
