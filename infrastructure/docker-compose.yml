@@ -140,6 +140,7 @@ services:
       - --lt-cred-mech
       - --fingerprint
       - --no-cli
+      - --external-ip=${COTURN_EXTERNAL_IP}
     networks:
       - voice-network
 
