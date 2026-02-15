@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api/client';
 import type { Friendship, Message } from '../types';
-import { /* Phone, */ ArrowLeft, Send, AlertTriangle, Eye, EyeOff } from 'lucide-react';
+import { /* Phone, */ ArrowLeft, Send } from 'lucide-react';
 import { useChatSocket } from '../hooks/useChatSocket';
 import { UserBar } from './UserBar';
 import './DirectMessages.css';
-import { Linkify } from './Linkify';
+import { MessageBubble } from './MessageBubble';
 
 interface DirectMessagesProps {
     currentUserId: string;
@@ -20,6 +20,7 @@ interface DirectMessagesProps {
     currentUser: any;
     onOpenSettings: () => void;
     onUserClick: (user: any) => void;
+    onJoinClick: (serverId: string) => void;
 }
 
 export const DirectMessages: React.FC<DirectMessagesProps> = ({
@@ -34,7 +35,8 @@ export const DirectMessages: React.FC<DirectMessagesProps> = ({
     currentUser,
     onOpenSettings,
     notificationTrigger,
-    onUserClick
+    onUserClick,
+    onJoinClick
 }) => {
     // ... (rest of imports/state)
 
@@ -69,7 +71,7 @@ export const DirectMessages: React.FC<DirectMessagesProps> = ({
         });
     };
 
-    const isMessageToxic = (msg: Message): boolean => !!(msg.isToxic || msg.toxic);
+
 
     const { socketMessages, sendMessage: sendSocketMessage } = useChatSocket({
         serverId: "dm",  // All DMs use constant serverId = "dm"
@@ -237,88 +239,35 @@ export const DirectMessages: React.FC<DirectMessagesProps> = ({
 
                 <div className="messages-list">
                     {displayMessages.map((msg) => {
-                        const toxic = isMessageToxic(msg);
-                        const revealed = revealedToxicIds.has(msg.id);
+
+                        // User info resolution
+                        const friendInfo = friends.find(f => f.friendId === msg.senderId);
+                        const isMe = currentUser?.id === msg.senderId;
+                        const displayName = isMe ? currentUser?.displayName : (friendInfo?.friendDisplayName || msg.senderUsername);
+                        const senderName = isMe ? (currentUser?.displayName || currentUser?.username || "Ja") : (friendInfo?.friendDisplayName || msg.senderUsername || msg.senderId);
+                        const avatarUrl = isMe ? currentUser?.avatarUrl : friendInfo?.friendAvatarUrl;
+
+                        const handleUserClick = () => {
+                            onUserClick({
+                                id: msg.senderId,
+                                username: msg.senderUsername || msg.senderId,
+                                displayName: displayName || msg.senderUsername,
+                                avatarUrl: avatarUrl
+                            });
+                        };
+
                         return (
-                            <div key={msg.id} className={`message-item ${toxic ? 'message-toxic' : ''}`}>
-                                <div
-                                    className="message-avatar"
-                                    style={{ cursor: 'pointer' }}
-                                    onClick={() => {
-                                        const friendInfo = friends.find(f => f.friendId === msg.senderId);
-                                        const isMe = currentUser?.id === msg.senderId;
-                                        // Fix: Use friendDisplayName if available, else fallback
-                                        const displayName = isMe ? currentUser?.displayName : (friendInfo?.friendDisplayName || msg.senderUsername);
-
-                                        onUserClick({
-                                            id: msg.senderId,
-                                            username: msg.senderUsername || msg.senderId,
-                                            displayName: displayName || msg.senderUsername, // Ensure we pass something
-                                            avatarUrl: isMe ? currentUser?.avatarUrl : friendInfo?.friendAvatarUrl
-                                        });
-                                    }}
-                                >
-                                    {(() => {
-                                        // Let's try to find friend info from 'friends' array
-                                        const friendInfo = friends.find(f => f.friendId === msg.senderId);
-                                        const isMe = currentUser?.id === msg.senderId;
-                                        const url = isMe ? currentUser?.avatarUrl : friendInfo?.friendAvatarUrl;
-
-                                        return url ? (
-                                            <img src={url} alt={msg.senderUsername} className="user-avatar-img" />
-                                        ) : (
-                                            <div className="user-avatar-placeholder">
-                                                {(friendInfo?.friendDisplayName || msg.senderUsername || "?").substring(0, 1).toUpperCase()}
-                                            </div>
-                                        );
-                                    })()}
-                                </div>
-                                <div className="message-content">
-                                    <div className="message-header">
-                                        <span
-                                            className="author"
-                                            style={{ cursor: 'pointer' }}
-                                            onClick={() => {
-                                                const friendInfo = friends.find(f => f.friendId === msg.senderId);
-                                                const isMe = currentUser?.id === msg.senderId;
-                                                const displayName = isMe ? currentUser?.displayName : (friendInfo?.friendDisplayName || msg.senderUsername);
-
-                                                onUserClick({
-                                                    id: msg.senderId,
-                                                    username: msg.senderUsername || msg.senderId,
-                                                    displayName: displayName || msg.senderUsername,
-                                                    avatarUrl: isMe ? currentUser?.avatarUrl : friendInfo?.friendAvatarUrl
-                                                });
-                                            }}
-                                        >
-                                            {(() => {
-                                                const friendInfo = friends.find(f => f.friendId === msg.senderId);
-                                                const isMe = currentUser?.id === msg.senderId;
-                                                return isMe ? (currentUser?.displayName || currentUser?.username || msg.senderUsername) : (friendInfo?.friendDisplayName || msg.senderUsername || (msg.senderId.length > 20 ? msg.senderId.substring(0, 8) + '...' : msg.senderId));
-                                            })()}
-                                        </span>
-                                        {toxic && <span className="toxic-badge"><AlertTriangle size={14} /> Potencjalnie wulgarna</span>}
-                                        <span className="time">{new Date(msg.timestamp).toLocaleTimeString()}</span>
-                                    </div>
-                                    {toxic && !revealed ? (
-                                        <div className="toxic-hidden-content">
-                                            <span>Treść ukryta — wykryto potencjalnie wulgarną treść</span>
-                                            <button className="toxic-reveal-btn" onClick={() => toggleToxicReveal(msg.id)}>
-                                                <Eye size={14} /> Pokaż treść
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div className="text">
-                                            <Linkify>{msg.content}</Linkify>
-                                            {toxic && revealed && (
-                                                <button className="toxic-reveal-btn toxic-hide-btn" onClick={() => toggleToxicReveal(msg.id)}>
-                                                    <EyeOff size={14} /> Ukryj
-                                                </button>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
+                            <MessageBubble
+                                key={msg.id}
+                                message={msg}
+                                isMine={isMe}
+                                revealedToxicIds={revealedToxicIds}
+                                toggleToxicReveal={toggleToxicReveal}
+                                onUserClick={handleUserClick}
+                                senderName={senderName}
+                                senderAvatarUrl={avatarUrl}
+                                onJoinClick={onJoinClick}
+                            />
                         );
                     })}
                     <div ref={bottomRef} />

@@ -86,8 +86,10 @@ export const InviteFriendsModal: React.FC<InviteFriendsModalProps> = ({
             const { channelId } = await api.getDMChannel(friendId);
 
             // 2. Prepare Invite Message
-            const inviteLink = `${window.location.origin}?joinServer=${serverId}`;
-            const messageContent = `Hej! Zapraszam Cię na serwer **${serverName}**.\nKod dołączenia to: \`${serverId}\`\n\nWejdź w link, aby dołączyć: ${inviteLink}`;
+            // MAGIC STRING FORMAT: :::INVITE:SERVER_ID:SERVER_NAME:::
+            const messageContent = `:::INVITE:${serverId}:${serverName}:::`;
+            // Old format for reference/fallback if someone reads raw:
+            // const messageContent = `Hej! Zapraszam Cię na serwer **${serverName}**.\nKod dołączenia to: \`${serverId}\`\n\nWejdź w link, aby dołączyć: ${inviteLink}`;
 
             // 3. Send via WebSocket
             clientRef.current.publish({
@@ -163,7 +165,7 @@ export const InviteFriendsModal: React.FC<InviteFriendsModalProps> = ({
                                             fontWeight: 'bold',
                                             textTransform: 'uppercase'
                                         }}>
-                                            Członek
+                                            CZŁONEK
                                         </div>
                                     ) : (
                                         <button

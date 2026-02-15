@@ -8,7 +8,7 @@ import '@livekit/components-styles';
 import { api } from './api/client';
 import type { Server, Message, MemberDTO, User } from './types';
 import './App.css';
-import { Hash, Volume2, Plus, LogOut, Copy, Users, MessageCircle, AlertTriangle, Eye, EyeOff, Trash2, UserX, DoorOpen, BarChart3, UserPlus } from 'lucide-react';
+import { Hash, Volume2, Plus, LogOut, Copy, Users, MessageCircle, Trash2, UserX, DoorOpen, BarChart3, UserPlus } from 'lucide-react';
 import { useChatSocket } from './hooks/useChatSocket';
 import { useWebRTCCall } from './hooks/useWebRTCCall';
 import { useServerNotifications } from './hooks/useServerNotifications';
@@ -26,7 +26,8 @@ import { useAnalyticsReporter } from './hooks/useAnalyticsReporter';
 import { CustomVideoConference } from './components/CustomVideoConference';
 import { useUnreadMessages } from './hooks/useUnreadMessages';
 import { InviteFriendsModal } from './components/InviteFriendsModal';
-import { Linkify } from './components/Linkify';
+// import { Linkify } from './components/Linkify'; // Moved to MessageBubble
+import { MessageBubble } from './components/MessageBubble';
 
 
 // Wrapper component — must be inside <LiveKitRoom> to access Room context
@@ -127,8 +128,6 @@ export default function App() {
         });
     };
 
-    // Helper: backend Java boolean `isToxic` may serialize as `toxic` or `isToxic`
-    const isMessageToxic = (msg: Message): boolean => !!(msg.isToxic || msg.toxic);
 
     const handleReconnect = useCallback(() => {
         if (selectedServerId && chatChannelId) {
@@ -591,6 +590,12 @@ export default function App() {
 
     const [showRegister, setShowRegister] = useState(false);
 
+    const handleJoinClick = (serverId: string) => {
+        setModalMode('JOIN');
+        setInputVal(serverId);
+        setShowModal(true);
+    };
+
     if (auth.isLoading) {
         return (
             <div className="loading-screen">
@@ -977,6 +982,7 @@ export default function App() {
                     onOpenSettings={() => setShowSettingsModal(true)}
                     notificationTrigger={friendNotificationTrigger}
                     onUserClick={handleViewProfile}
+                    onJoinClick={handleJoinClick}
                 />
             )}
 
@@ -1049,78 +1055,33 @@ export default function App() {
 
                             <div className="messages-list">
                                 {displayMessages.map((msg) => {
-                                    const toxic = isMessageToxic(msg);
-                                    const revealed = revealedToxicIds.has(msg.id);
+
+                                    const sender = members.find(m => m.userId === msg.senderId);
+                                    const isMe = currentUser?.id === msg.senderId;
+                                    const avatarUrl = sender?.avatarUrl || (isMe ? currentUser?.avatarUrl : undefined);
+                                    const senderName = sender?.displayName || (isMe ? currentUser?.displayName : null) || msg.senderUsername || (msg.senderId.length > 20 ? msg.senderId.substring(0, 8) + '...' : msg.senderId);
+
+                                    const handleUserClick = () => {
+                                        handleViewProfile({
+                                            id: msg.senderId,
+                                            username: msg.senderUsername || msg.senderId,
+                                            displayName: sender?.displayName || msg.senderDisplayName,
+                                            avatarUrl: sender?.avatarUrl
+                                        });
+                                    };
+
                                     return (
-                                        <div key={msg.id} className={`message-item ${toxic ? 'message-toxic' : ''}`}>
-                                            <div
-                                                className="message-avatar"
-                                                style={{ cursor: 'pointer' }}
-                                                onClick={() => {
-                                                    const sender = members.find(m => m.userId === msg.senderId);
-                                                    handleViewProfile({
-                                                        id: msg.senderId,
-                                                        username: msg.senderUsername || msg.senderId,
-                                                        displayName: sender?.displayName || msg.senderDisplayName,
-                                                        avatarUrl: sender?.avatarUrl
-                                                    });
-                                                }}
-                                            >
-                                                {(() => {
-                                                    const sender = members.find(m => m.userId === msg.senderId);
-                                                    const avatarUrl = sender?.avatarUrl;
-                                                    return avatarUrl ? (
-                                                        <img src={avatarUrl} alt={msg.senderUsername} className="user-avatar-img" />
-                                                    ) : (
-                                                        <div className="user-avatar-placeholder">
-                                                            {(sender?.displayName || msg.senderUsername || "?").substring(0, 1).toUpperCase()}
-                                                        </div>
-                                                    );
-                                                })()}
-                                            </div>
-                                            <div className="message-content">
-                                                <div className="message-header">
-                                                    <span
-                                                        className="author"
-                                                        style={{ cursor: 'pointer' }}
-                                                        onClick={() => {
-                                                            const sender = members.find(m => m.userId === msg.senderId);
-                                                            handleViewProfile({
-                                                                id: msg.senderId,
-                                                                username: msg.senderUsername || msg.senderId,
-                                                                displayName: sender?.displayName || msg.senderDisplayName,
-                                                                avatarUrl: sender?.avatarUrl
-                                                            });
-                                                        }}
-                                                    >
-                                                        {(() => {
-                                                            const member = members.find(m => m.userId === msg.senderId);
-                                                            const isMe = currentUser?.id === msg.senderId;
-                                                            return member?.displayName || (isMe ? currentUser?.displayName : null) || msg.senderUsername || (msg.senderId.length > 20 ? msg.senderId.substring(0, 8) + '...' : msg.senderId);
-                                                        })()}
-                                                    </span>
-                                                    <span className="time">{new Date(msg.timestamp).toLocaleTimeString()}</span>
-                                                    {toxic && <span className="toxic-badge"><AlertTriangle size={14} /> Potencjalnie wulgarna</span>}
-                                                </div>
-                                                {toxic && !revealed ? (
-                                                    <div className="toxic-hidden-content">
-                                                        <span>Treść ukryta — wykryto potencjalnie wulgarną treść</span>
-                                                        <button className="toxic-reveal-btn" onClick={() => toggleToxicReveal(msg.id)}>
-                                                            <Eye size={14} /> Pokaż treść
-                                                        </button>
-                                                    </div>
-                                                ) : (
-                                                    <div className="text">
-                                                        <Linkify>{msg.content}</Linkify>
-                                                        {toxic && revealed && (
-                                                            <button className="toxic-reveal-btn toxic-hide-btn" onClick={() => toggleToxicReveal(msg.id)}>
-                                                                <EyeOff size={14} /> Ukryj
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
+                                        <MessageBubble
+                                            key={msg.id}
+                                            message={msg}
+                                            isMine={isMe}
+                                            onJoinClick={handleJoinClick}
+                                            onUserClick={handleUserClick}
+                                            revealedToxicIds={revealedToxicIds}
+                                            toggleToxicReveal={toggleToxicReveal}
+                                            senderName={senderName}
+                                            senderAvatarUrl={avatarUrl}
+                                        />
                                     );
                                 })}
                                 <div ref={bottomRef} />
@@ -1147,84 +1108,33 @@ export default function App() {
 
                         <div className="messages-list">
                             {displayMessages.map((msg) => {
-                                const toxic = isMessageToxic(msg);
-                                const revealed = revealedToxicIds.has(msg.id);
+
+                                const sender = members.find(m => m.userId === msg.senderId);
+                                const isMe = currentUser?.id === msg.senderId;
+                                const avatarUrl = sender?.avatarUrl || (isMe ? currentUser?.avatarUrl : undefined);
+                                const senderName = sender?.displayName || (isMe ? currentUser?.displayName : null) || msg.senderUsername || (msg.senderId.length > 20 ? msg.senderId.substring(0, 8) + '...' : msg.senderId);
+
+                                const handleUserClick = () => {
+                                    handleViewProfile({
+                                        id: msg.senderId,
+                                        username: msg.senderUsername || msg.senderId,
+                                        displayName: sender?.displayName || (isMe ? currentUser?.displayName : null) || msg.senderDisplayName,
+                                        avatarUrl: avatarUrl
+                                    });
+                                };
+
                                 return (
-                                    <div key={msg.id} className={`message-item ${toxic ? 'message-toxic' : ''}`}>
-                                        <div
-                                            className="message-avatar"
-                                            style={{ cursor: 'pointer' }}
-                                            onClick={() => {
-                                                const sender = members.find(m => m.userId === msg.senderId);
-                                                const isMe = currentUser?.id === msg.senderId;
-                                                console.log('Clicked user:', msg.senderId, 'Found member:', sender, 'Is Me:', isMe);
-
-                                                handleViewProfile({
-                                                    id: msg.senderId,
-                                                    username: msg.senderUsername || msg.senderId,
-                                                    displayName: sender?.displayName || (isMe ? currentUser?.displayName : null) || msg.senderDisplayName,
-                                                    avatarUrl: sender?.avatarUrl || (isMe ? currentUser?.avatarUrl : undefined)
-                                                });
-                                            }}
-                                        >
-                                            {(() => {
-                                                const sender = members.find(m => m.userId === msg.senderId);
-                                                const avatarUrl = sender?.avatarUrl;
-                                                return avatarUrl ? (
-                                                    <img src={avatarUrl} alt={msg.senderUsername} className="user-avatar-img" />
-                                                ) : (
-                                                    <div className="user-avatar-placeholder">
-                                                        {(msg.senderUsername || "?").substring(0, 1).toUpperCase()}
-                                                    </div>
-                                                );
-                                            })()}
-                                        </div>
-                                        <div className="message-content">
-                                            <div className="message-header">
-                                                <span
-                                                    className="author"
-                                                    style={{ cursor: 'pointer' }}
-                                                    onClick={() => {
-                                                        const sender = members.find(m => m.userId === msg.senderId);
-                                                        const isMe = currentUser?.id === msg.senderId;
-                                                        console.log('Clicked author:', msg.senderId, 'Found member:', sender, 'Is Me:', isMe);
-
-                                                        handleViewProfile({
-                                                            id: msg.senderId,
-                                                            username: msg.senderUsername || msg.senderId,
-                                                            displayName: sender?.displayName || (isMe ? currentUser?.displayName : null) || msg.senderDisplayName,
-                                                            avatarUrl: sender?.avatarUrl || (isMe ? currentUser?.avatarUrl : undefined)
-                                                        });
-                                                    }}
-                                                >
-                                                    {(() => {
-                                                        const sender = members.find(m => m.userId === msg.senderId);
-                                                        const isMe = currentUser?.id === msg.senderId;
-                                                        return sender?.displayName || (isMe ? currentUser?.displayName : null) || msg.senderUsername || (msg.senderId.length > 20 ? msg.senderId.substring(0, 8) + '...' : msg.senderId);
-                                                    })()}
-                                                </span>
-                                                {toxic && <span className="toxic-badge"><AlertTriangle size={14} /> Potencjalnie wulgarna</span>}
-                                                <span className="time">{new Date(msg.timestamp).toLocaleTimeString()}</span>
-                                            </div>
-                                            {toxic && !revealed ? (
-                                                <div className="toxic-hidden-content">
-                                                    <span>Treść ukryta — wykryto potencjalnie wulgarną treść</span>
-                                                    <button className="toxic-reveal-btn" onClick={() => toggleToxicReveal(msg.id)}>
-                                                        <Eye size={14} /> Pokaż treść
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <div className="text">
-                                                    <Linkify>{msg.content}</Linkify>
-                                                    {toxic && revealed && (
-                                                        <button className="toxic-reveal-btn toxic-hide-btn" onClick={() => toggleToxicReveal(msg.id)}>
-                                                            <EyeOff size={14} /> Ukryj
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
+                                    <MessageBubble
+                                        key={msg.id}
+                                        message={msg}
+                                        isMine={isMe}
+                                        onJoinClick={handleJoinClick}
+                                        onUserClick={handleUserClick}
+                                        revealedToxicIds={revealedToxicIds}
+                                        toggleToxicReveal={toggleToxicReveal}
+                                        senderName={senderName}
+                                        senderAvatarUrl={avatarUrl}
+                                    />
                                 );
                             })}
                             <div ref={bottomRef} />
