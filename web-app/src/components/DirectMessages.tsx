@@ -5,6 +5,7 @@ import { /* Phone, */ ArrowLeft, Send, AlertTriangle, Eye, EyeOff } from 'lucide
 import { useChatSocket } from '../hooks/useChatSocket';
 import { UserBar } from './UserBar';
 import './DirectMessages.css';
+import { Linkify } from './Linkify';
 
 interface DirectMessagesProps {
     currentUserId: string;
@@ -308,7 +309,7 @@ export const DirectMessages: React.FC<DirectMessagesProps> = ({
                                         </div>
                                     ) : (
                                         <div className="text">
-                                            {msg.content}
+                                            <Linkify>{msg.content}</Linkify>
                                             {toxic && revealed && (
                                                 <button className="toxic-reveal-btn toxic-hide-btn" onClick={() => toggleToxicReveal(msg.id)}>
                                                     <EyeOff size={14} /> Ukryj

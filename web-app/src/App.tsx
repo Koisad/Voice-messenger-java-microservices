@@ -26,6 +26,7 @@ import { useAnalyticsReporter } from './hooks/useAnalyticsReporter';
 import { CustomVideoConference } from './components/CustomVideoConference';
 import { useUnreadMessages } from './hooks/useUnreadMessages';
 import { InviteFriendsModal } from './components/InviteFriendsModal';
+import { Linkify } from './components/Linkify';
 
 
 // Wrapper component — must be inside <LiveKitRoom> to access Room context
@@ -1110,7 +1111,7 @@ export default function App() {
                                                     </div>
                                                 ) : (
                                                     <div className="text">
-                                                        {msg.content}
+                                                        <Linkify>{msg.content}</Linkify>
                                                         {toxic && revealed && (
                                                             <button className="toxic-reveal-btn toxic-hide-btn" onClick={() => toggleToxicReveal(msg.id)}>
                                                                 <EyeOff size={14} /> Ukryj
@@ -1214,7 +1215,7 @@ export default function App() {
                                                 </div>
                                             ) : (
                                                 <div className="text">
-                                                    {msg.content}
+                                                    <Linkify>{msg.content}</Linkify>
                                                     {toxic && revealed && (
                                                         <button className="toxic-reveal-btn toxic-hide-btn" onClick={() => toggleToxicReveal(msg.id)}>
                                                             <EyeOff size={14} /> Ukryj
