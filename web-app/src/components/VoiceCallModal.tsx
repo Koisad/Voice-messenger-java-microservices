@@ -4,6 +4,8 @@ import type { CallStatus } from '../hooks/useWebRTCCall';
 import type { User } from '../types';
 import './VoiceCallModal.css';
 
+import { soundManager } from '../utils/SoundManager';
+
 interface VoiceCallModalProps {
     status: CallStatus;
     remotePeer: { id: string; username: string; user?: User } | null;
@@ -29,6 +31,40 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({
     const [callDuration, setCallDuration] = React.useState(0);
     const audioRef = useRef<HTMLAudioElement>(null);
     const timerRef = useRef<number | null>(null);
+
+    // Sound effects management
+    useEffect(() => {
+        if (status === 'ringing') {
+            // Incoming call - Ringing sound
+            soundManager.playRinging();
+        } else if (status === 'calling') {
+            // Outgoing call - Dial tone
+            soundManager.playDialTone();
+        } else if (status === 'connected') {
+            // Call connected - Stop all sounds
+            soundManager.stopAll();
+        } else if (status === 'ended') {
+            // Call ended - Play beep
+            soundManager.playEndCall();
+        } else {
+            soundManager.stopAll();
+        }
+
+        return () => {
+            // Cleanup on unmount or status change (handled by effect re-run)
+            // But we only want to stop if the component unmounts or status changes to idle
+            if (status === 'idle') {
+                soundManager.stopAll();
+            }
+        };
+    }, [status]);
+
+    // Ensure sounds stop when modal closes
+    useEffect(() => {
+        return () => {
+            soundManager.stopAll();
+        };
+    }, []);
 
     const tryPlayAudio = React.useCallback(() => {
         if (audioRef.current && audioRef.current.srcObject) {
