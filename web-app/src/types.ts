@@ -117,3 +117,9 @@ export interface NetworkMetric {
         connectionType: string;
     };
 }
+
+export interface IceServerConfig {
+    urls: string | string[];
+    username?: string;
+    credential?: string;
+}

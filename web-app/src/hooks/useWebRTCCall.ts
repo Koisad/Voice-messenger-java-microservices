@@ -16,7 +16,38 @@ export const useWebRTCCall = ({ userToken, currentUserId, currentUsername }: Use
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
     const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
     const pcRef = useRef<RTCPeerConnection | null>(null);
+    const [iceServers, setIceServers] = useState<RTCIceServer[]>([
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+    ]);
 
+    useEffect(() => {
+        // Fetch TURN/STUN servers from backend
+        const fetchIceServers = async () => {
+            if (!userToken) return;
+            try {
+                // We need to import api here or assume it's available via closure/import
+                // Importing api at top of file
+                const servers = await import('../api/client').then(m => m.api.getIceServers());
+                if (servers && servers.length > 0) {
+                    console.log('[WebRTC] Using fetched ICE servers:', servers);
+                    setIceServers(servers);
+                }
+            } catch (err) {
+                console.warn('[WebRTC] Failed to fetch ICE servers, using defaults', err);
+            }
+        };
+        fetchIceServers();
+    }, [userToken]);
+
+    // We need to fix the dependency regarding iceServers. 
+    // Let's use a Ref for iceServers to access it inside callbacks without re-creating them.
+    const iceServersRef = useRef<RTCIceServer[]>(iceServers);
+    useEffect(() => {
+        iceServersRef.current = iceServers;
+    }, [iceServers]);
+
+    // Redefine onIncomingCall to use ref
     const onIncomingCall = useCallback(async (from: string, fromUsername: string, offer: RTCSessionDescriptionInit, fromUser: User) => {
         console.log('[WebRTC] onIncomingCall triggered! From:', from, 'Username:', fromUsername);
         try {
@@ -24,13 +55,12 @@ export const useWebRTCCall = ({ userToken, currentUserId, currentUsername }: Use
             setCallStatus('ringing');
             console.log('[WebRTC] Call status set to ringing');
 
-            // Store offer to accept later
-            pcRef.current = createPeerConnection(from);
+            pcRef.current = createPeerConnection(from, iceServersRef.current);
             await pcRef.current.setRemoteDescription(new RTCSessionDescription(offer));
             console.log('[WebRTC] Remote description set');
         } catch (error) {
             console.error('[WebRTC] Error in onIncomingCall:', error);
-            endCall();
+            cleanupCall();
         }
     }, []);
 
@@ -57,7 +87,6 @@ export const useWebRTCCall = ({ userToken, currentUserId, currentUsername }: Use
 
     const onCallEnded = useCallback(() => {
         console.log('[WebRTC] Call ended by remote');
-        // IMPORTANT: Immediate cleanup on frontend when we receive signal
         cleanupCall();
     }, []);
 
@@ -65,18 +94,15 @@ export const useWebRTCCall = ({ userToken, currentUserId, currentUsername }: Use
         userToken,
         currentUserId,
         currentUsername,
-        onIncomingCall,
+        onIncomingCall: onIncomingCall,
         onCallAnswered,
         onIceCandidate,
         onCallEnded
     });
 
-    const createPeerConnection = (targetUserId: string) => {
+    const createPeerConnection = (targetUserId: string, servers: RTCIceServer[]) => {
         const pc = new RTCPeerConnection({
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' }
-            ]
+            iceServers: servers
         });
 
         pc.onicecandidate = (event) => {
@@ -99,7 +125,6 @@ export const useWebRTCCall = ({ userToken, currentUserId, currentUsername }: Use
             if (pc.connectionState === 'connected') {
                 setCallStatus('connected');
             } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed' || pc.connectionState === 'closed') {
-                // Do not auto-close here if it's just a flicker, but usually for P2P 'failed' means end.
                 if (pc.connectionState === 'failed') {
                     cleanupCall();
                 }
@@ -114,20 +139,17 @@ export const useWebRTCCall = ({ userToken, currentUserId, currentUsername }: Use
             setRemotePeer({ id: targetUserId, username: targetUsername, user: targetUser });
             setCallStatus('calling');
 
-            // Get user media
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
             setLocalStream(stream);
 
-            // Create peer connection
-            const pc = createPeerConnection(targetUserId);
+            // Use current iceServers from state or ref
+            const pc = createPeerConnection(targetUserId, iceServersRef.current);
             pcRef.current = pc;
 
-            // Add audio track
             stream.getTracks().forEach(track => {
                 pc.addTrack(track, stream);
             });
 
-            // Create and send offer
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
 
@@ -150,16 +172,13 @@ export const useWebRTCCall = ({ userToken, currentUserId, currentUsername }: Use
         if (!pcRef.current || !remotePeer) return;
 
         try {
-            // Get user media
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
             setLocalStream(stream);
 
-            // Add audio track
             stream.getTracks().forEach(track => {
                 pcRef.current!.addTrack(track, stream);
             });
 
-            // Create and send answer
             const answer = await pcRef.current.createAnswer();
             await pcRef.current.setLocalDescription(answer);
 
@@ -178,7 +197,6 @@ export const useWebRTCCall = ({ userToken, currentUserId, currentUsername }: Use
 
     const rejectCall = () => {
         if (remotePeer) {
-            // Send hangup signal immediately
             sendSignal({
                 type: 'hangup',
                 target: remotePeer.id
@@ -197,7 +215,6 @@ export const useWebRTCCall = ({ userToken, currentUserId, currentUsername }: Use
         cleanupCall();
     };
 
-    // Internal cleanup function ensuring state is reset
     const cleanupCall = () => {
         if (localStream) {
             localStream.getTracks().forEach(track => track.stop());
@@ -214,7 +231,6 @@ export const useWebRTCCall = ({ userToken, currentUserId, currentUsername }: Use
         setCallStatus('idle');
     };
 
-    // Handle tab close / refresh
     const remotePeerRef = useRef(remotePeer);
     useEffect(() => {
         remotePeerRef.current = remotePeer;
@@ -224,7 +240,6 @@ export const useWebRTCCall = ({ userToken, currentUserId, currentUsername }: Use
         const handleBeforeUnload = () => {
             const peer = remotePeerRef.current;
             if (peer) {
-                // Try to best-effort send hangup
                 sendSignal({
                     type: 'hangup',
                     target: peer.id
@@ -235,6 +250,7 @@ export const useWebRTCCall = ({ userToken, currentUserId, currentUsername }: Use
         window.addEventListener('beforeunload', handleBeforeUnload);
         return () => window.removeEventListener('beforeunload', handleBeforeUnload);
     }, [sendSignal]);
+
 
     return {
         callStatus,
