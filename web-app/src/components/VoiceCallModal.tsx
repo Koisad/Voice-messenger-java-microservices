@@ -1,11 +1,12 @@
 import React, { useEffect, useRef } from 'react';
 import { Phone, PhoneOff, Mic, MicOff } from 'lucide-react';
 import type { CallStatus } from '../hooks/useWebRTCCall';
+import type { User } from '../types';
 import './VoiceCallModal.css';
 
 interface VoiceCallModalProps {
     status: CallStatus;
-    remotePeer: { id: string; username: string } | null;
+    remotePeer: { id: string; username: string; user?: User } | null;
     remoteStream: MediaStream | null;
     localStream: MediaStream | null;
     onAnswer?: () => void;
@@ -77,12 +78,21 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({
 
     if (status === 'idle') return null;
 
+    const displayName = remotePeer?.user?.displayName || remotePeer?.username || 'Unknown';
+    const avatarUrl = remotePeer?.user?.avatarUrl;
+
     return (
         <div className="call-modal-overlay">
             <div className="call-modal">
-                <div className="call-avatar-large" />
+                {avatarUrl ? (
+                    <img src={avatarUrl} alt={displayName} className="call-avatar-large" />
+                ) : (
+                    <div className="call-avatar-large">
+                        {(displayName || "?").substring(0, 1).toUpperCase()}
+                    </div>
+                )}
 
-                <h2 className="call-username">{remotePeer?.username || 'Unknown'}</h2>
+                <h2 className="call-username">{displayName}</h2>
 
                 <div className="call-status-text">
                     {status === 'calling' && 'Dzwonię...'}

@@ -109,9 +109,9 @@ export const useWebRTCCall = ({ userToken, currentUserId, currentUsername }: Use
         return pc;
     };
 
-    const startCall = async (targetUserId: string, targetUsername: string) => {
+    const startCall = async (targetUserId: string, targetUsername: string, targetUser?: User) => {
         try {
-            setRemotePeer({ id: targetUserId, username: targetUsername });
+            setRemotePeer({ id: targetUserId, username: targetUsername, user: targetUser });
             setCallStatus('calling');
 
             // Get user media
