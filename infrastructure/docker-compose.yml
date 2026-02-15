@@ -120,6 +120,32 @@ services:
     networks:
       - voice-network
 
+  coturn:
+    image: coturn/coturn
+    container_name: coturn
+    restart: always
+    ports:
+      - "3478:3478/tcp"
+      - "3478:3478/udp"
+      - "5349:5349/tcp"
+      - "5349:5349/udp"
+      - "49160-49200:49160-49200/udp"
+    environment:
+      - EXTERNAL_IP=${COTURN_EXTERNAL_IP}
+    command:
+      - -n
+      - --log-file=stdout
+      - --min-port=49160
+      - --max-port=49200
+      - --realm=${COTURN_REALM}
+      - --user=${COTURN_USER}:${COTURN_PASSWORD}
+      - --lt-cred-mech
+      - --fingerprint
+      - --no-cli
+    networks:
+      - voice-network
+
+
 volumes:
   auth_db_data:
   chat_ai_db_data:
