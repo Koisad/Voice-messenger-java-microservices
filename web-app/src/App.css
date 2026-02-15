@@ -317,6 +317,8 @@ html,
 .message-item {
     display: flex;
     gap: 12px;
+    padding-left: 16px;
+    /* Ensure padding is applied */
 }
 
 .message-content {

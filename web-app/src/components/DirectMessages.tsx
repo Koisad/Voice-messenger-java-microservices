@@ -215,13 +215,25 @@ export const DirectMessages: React.FC<DirectMessagesProps> = ({
                             <div key={msg.id} className={`message-item ${toxic ? 'message-toxic' : ''}`}>
                                 <div className="message-avatar">
                                     {(() => {
-                                        // Assuming no avatar URL for simplicity in this view, or add logic if needed
-                                        // Wait, existing code was empty div: <div className="message-avatar" />
-                                        // I should implement the placeholder logic here.
-                                        // The previous code had empty div, which is wrong?
-                                        // Ah, line 216 in view step 2189 shows: <div className="message-avatar" />
-                                        // I need to add the avatar logic here.
-                                        return (
+                                        // Use logic similar to main chat
+                                        const avatarUrl = currentUser?.id === msg.senderId
+                                            ? currentUser.avatarUrl
+                                            : (selectedFriend?.id === msg.senderId ? null : null); // We don't have friend's avatarUrl here easily, need to check if we can get it from friends list
+
+                                        // Better approach: We know if it's us or friend
+                                        // If us: use currentUser.avatarUrl
+                                        // If friend: check 'friend' object if we have it? We have selectedFriend (id, username).
+                                        // The 'friends' state has FriendWithChannel which might have profile info? 
+                                        // Let's check api.getFriends(). It returns Friendship which has friendAvatarUrl.
+
+                                        // Let's try to find friend info from 'friends' array
+                                        const friendInfo = friends.find(f => f.friendId === msg.senderId);
+                                        const isMe = currentUser?.id === msg.senderId;
+                                        const url = isMe ? currentUser?.avatarUrl : friendInfo?.friendAvatarUrl;
+
+                                        return url ? (
+                                            <img src={url} alt={msg.senderUsername} className="user-avatar-img" />
+                                        ) : (
                                             <div className="user-avatar-placeholder">
                                                 {(msg.senderUsername || "?").substring(0, 1).toUpperCase()}
                                             </div>

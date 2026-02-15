@@ -900,11 +900,13 @@ export default function App() {
 
             <main className="chat-area" style={{ display: viewMode === 'servers' ? 'flex' : 'none' }}>
                 {!selectedServerId ? (
-                    <div className="welcome">
-                        <h2>Witaj w Voice Messenger 👋</h2>
-                        <p>Wybierz serwer z lewej strony lub stwórz nowy.</p>
+                    <div className="welcome" style={{ position: 'relative' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                            <h2>Witaj w Voice Messenger 👋</h2>
+                            <p>Wybierz serwer z lewej strony lub stwórz nowy.</p>
+                        </div>
 
-                        <div style={{ marginTop: '20px', padding: '10px', background: 'var(--bg-secondary)', borderRadius: '8px', minWidth: '300px' }}>
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, width: '240px' }}>
                             <UserBar
                                 currentUser={currentUser}
                                 onOpenSettings={() => setShowSettingsModal(true)}
