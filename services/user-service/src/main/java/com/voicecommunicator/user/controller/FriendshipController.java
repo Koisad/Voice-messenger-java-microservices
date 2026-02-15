@@ -1,7 +1,7 @@
 package com.voicecommunicator.user.controller;
 
 import com.voicecommunicator.user.dto.FriendRequestDTO;
-import com.voicecommunicator.user.model.Friendship;
+import com.voicecommunicator.user.dto.FriendshipResponseDTO;
 import com.voicecommunicator.user.service.FriendshipService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,8 +19,7 @@ public class FriendshipController {
     private final FriendshipService friendshipService;
 
     @PostMapping("/request")
-    public ResponseEntity<Void> sendRequest(@RequestBody FriendRequestDTO request,
-                                            @AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<Void> sendRequest(@RequestBody FriendRequestDTO request, @AuthenticationPrincipal Jwt jwt) {
 
         String requesterId = jwt.getSubject();
         String requesterUsername = jwt.getClaimAsString("preferred_username");
@@ -30,28 +29,26 @@ public class FriendshipController {
     }
 
     @PostMapping("/accept/{requestId}")
-    public ResponseEntity<Void> acceptRequest(@PathVariable String requestId,
-                                              @AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<Void> acceptRequest(@PathVariable String requestId, @AuthenticationPrincipal Jwt jwt) {
         String addreseeId = jwt.getSubject();
         friendshipService.acceptFriendshipRequest(addreseeId, requestId);
         return ResponseEntity.ok().build();
     }
 
     @GetMapping("/requests")
-    public ResponseEntity<List<Friendship>> getFriendshipRequests(@AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<List<FriendshipResponseDTO>> getFriendshipRequests(@AuthenticationPrincipal Jwt jwt) {
         String addresseeId = jwt.getSubject();
         return ResponseEntity.ok(friendshipService.getFriendshipRequests(addresseeId));
     }
 
     @GetMapping
-    public ResponseEntity<List<Friendship>> getFriends(@AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<List<FriendshipResponseDTO>> getFriends(@AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
         return ResponseEntity.ok(friendshipService.getFriends(userId));
     }
 
     @DeleteMapping("/{friendId}")
-    public ResponseEntity<Void> deleteFriendship(@PathVariable String friendId,
-                                                 @AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<Void> deleteFriendship(@PathVariable String friendId, @AuthenticationPrincipal Jwt jwt) {
 
         String userId = jwt.getSubject();
         friendshipService.removeFriendship(userId, friendId);

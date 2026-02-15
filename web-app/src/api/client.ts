@@ -1,4 +1,4 @@
-import type { Server, Message, CreateServerRequest, SendMessageRequest, LiveKitTokenResponse, MemberDTO, Friendship, NetworkMetric } from '../types';
+import type { Server, Message, CreateServerRequest, SendMessageRequest, LiveKitTokenResponse, MemberDTO, Friendship, NetworkMetric, User } from '../types';
 import { getUserToken } from './config';
 
 const BASE_URL = '/api';
@@ -101,26 +101,48 @@ export const api = {
     },
 
     // LiveKit (Głos/Wideo)
-    getLiveKitToken: async (channelId: string): Promise<LiveKitTokenResponse> => {
+    getLiveKitToken: async (channelId: string, displayName?: string): Promise<LiveKitTokenResponse> => {
         const res = await fetch(`${BASE_URL}/media/token`, {
             method: 'POST',
             headers: getHeaders(),
-            body: JSON.stringify({ channelId })
+            body: JSON.stringify({ channelId, displayName })
         });
         if (!res.ok) throw new Error('Failed to get media token');
         return res.json();
     },
 
     // User Management
-    syncUser: async (): Promise<void> => {
+    syncUser: async (): Promise<User> => {
         const res = await fetch(`${BASE_URL}/users/sync`, {
             method: 'POST',
             headers: getHeaders()
         });
         if (!res.ok) throw new Error('Failed to sync user');
+        return res.json();
     },
 
-    searchUsers: async (query: string): Promise<{ userId: string; username: string }[]> => {
+    updateProfile: async (displayName?: string, avatar?: File): Promise<User> => {
+        const formData = new FormData();
+        if (avatar) formData.append('avatar', avatar);
+        if (displayName) formData.append('displayName', displayName);
+
+        const token = getUserToken();
+        const headers: HeadersInit = {};
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const res = await fetch(`${BASE_URL}/users/me`, {
+            method: 'PATCH',
+            headers: headers,
+            body: formData
+        });
+
+        if (!res.ok) throw new Error('Failed to update profile');
+        return res.json();
+    },
+
+    searchUsers: async (query: string): Promise<User[]> => {
         const params = new URLSearchParams({ query });
         const res = await fetch(`${BASE_URL}/users/search?${params.toString()}`, {
             headers: getHeaders()

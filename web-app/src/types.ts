@@ -1,6 +1,9 @@
 export interface User {
     id: string;
     username: string;
+    displayName?: string;
+    avatarUrl?: string;
+    email?: string;
 }
 
 export interface Channel {
@@ -20,6 +23,7 @@ export interface Message {
     id: string;
     senderId: string;
     senderUsername?: string; // Username z backendu
+    senderDisplayName?: string; // Display name z backendu
     content: string;
     serverId: string;
     channelId: string;
@@ -46,6 +50,8 @@ export interface LiveKitTokenResponse {
 export interface Member {
     userId: string;
     username: string;
+    displayName?: string;
+    avatarUrl?: string;
     role: string;
 }
 
@@ -56,16 +62,19 @@ export type FriendshipStatus = 'PENDING' | 'FRIENDS';
 
 export interface Friendship {
     id: string;
+    friendId: string;
+    friendUsername: string;
+    friendDisplayName: string;
+    friendAvatarUrl?: string;
     status: FriendshipStatus;
-    requesterId: string;
-    requesterUsername: string;
-    addresseeId: string;
-    addresseeUsername: string;
+    isIncoming: boolean;
 }
 
 export interface FriendUser {
     userId: string;
     username: string;
+    displayName?: string;
+    avatarUrl?: string;
 }
 
 // DM types

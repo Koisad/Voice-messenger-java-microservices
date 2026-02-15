@@ -11,6 +11,7 @@ interface UseUserNotificationsProps {
     onFriendRemoved?: (data: { friendId: string }) => void;
     onIncomingCall?: (data: { callerId: string; callerName: string; roomId: string; type: string }) => void;
     onDMReceived?: (data: { senderId: string; senderName: string; content: string; channelId: string }) => void;
+    onUserUpdated?: (data: { userId: string; username: string; displayName: string; avatarUrl: string }) => void;
 }
 
 export const useUserNotifications = ({
@@ -20,7 +21,8 @@ export const useUserNotifications = ({
     onFriendAccepted,
     onFriendRemoved,
     onIncomingCall,
-    onDMReceived
+    onDMReceived,
+    onUserUpdated
 }: UseUserNotificationsProps) => {
     const clientRef = useRef<Client | null>(null);
     const subscriptionRef = useRef<StompSubscription | null>(null);
@@ -31,6 +33,7 @@ export const useUserNotifications = ({
     const onFriendRemovedRef = useRef(onFriendRemoved);
     const onIncomingCallRef = useRef(onIncomingCall);
     const onDMReceivedRef = useRef(onDMReceived);
+    const onUserUpdatedRef = useRef(onUserUpdated);
 
     useEffect(() => {
         onFriendRequestRef.current = onFriendRequest;
@@ -38,7 +41,8 @@ export const useUserNotifications = ({
         onFriendRemovedRef.current = onFriendRemoved;
         onIncomingCallRef.current = onIncomingCall;
         onDMReceivedRef.current = onDMReceived;
-    }, [onFriendRequest, onFriendAccepted, onFriendRemoved, onIncomingCall, onDMReceived]);
+        onUserUpdatedRef.current = onUserUpdated;
+    }, [onFriendRequest, onFriendAccepted, onFriendRemoved, onIncomingCall, onDMReceived, onUserUpdated]);
 
     useEffect(() => {
         // Cleanup previous connection
@@ -71,6 +75,7 @@ export const useUserNotifications = ({
                 const topic = `/topic/user.${userId}`;
                 console.log(`[UserNotifications] Connected. Subscribing to: ${topic}`);
 
+                // Subscribe to private notifications
                 subscriptionRef.current = client.subscribe(topic, (msg) => {
                     try {
                         const notification = JSON.parse(msg.body);
@@ -123,6 +128,19 @@ export const useUserNotifications = ({
                         }
                     } catch (error) {
                         console.error('[UserNotifications] Failed to parse message:', error);
+                    }
+                });
+
+                // Subscribe to public user updates
+                client.subscribe('/topic/public.user-updates', (msg) => {
+                    try {
+                        const update = JSON.parse(msg.body);
+                        console.log('[UserNotifications] Received user update:', update);
+                        if (onUserUpdatedRef.current) {
+                            onUserUpdatedRef.current(update);
+                        }
+                    } catch (error) {
+                        console.error('[UserNotifications] Failed to parse user update:', error);
                     }
                 });
             },

@@ -189,6 +189,11 @@ html,
     height: 100%;
     border-radius: 50%;
     background-color: var(--brand);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: white;
 }
 
 .status-indicator {
@@ -312,6 +317,9 @@ html,
 .message-item {
     display: flex;
     gap: 12px;
+    padding-left: 16px;
+    padding-right: 16px;
+    /* Ensure padding is applied on both sides */
 }
 
 .message-content {
@@ -344,6 +352,8 @@ html,
     font-weight: 600;
     color: white;
     cursor: pointer;
+    margin-right: auto;
+    /* Push time/badges to the right */
 }
 
 .author:hover {

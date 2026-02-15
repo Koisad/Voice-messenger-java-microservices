@@ -13,4 +13,6 @@ public class AppUser {
     @Id
     private String userId;
     private String username;
+    private String displayName;
+    private String avatarUrl;
 }

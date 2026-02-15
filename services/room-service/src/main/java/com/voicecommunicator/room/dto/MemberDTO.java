@@ -9,5 +9,7 @@ import lombok.Data;
 public class MemberDTO {
     private String userId;
     private String username;
+    private String displayName; // only in DTO
+    private String avatarUrl;   // only in DTO
     private Role role;
 }

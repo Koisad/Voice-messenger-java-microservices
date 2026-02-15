@@ -229,6 +229,11 @@ services:
       - STOMP_RELAY_PORT=61613
       - STOMP_RELAY_LOGIN=${RABBITMQ_USER}
       - STOMP_RELAY_PASSCODE=${RABBITMQ_PASSWORD}
+      - MINIO_URL=${MINIO_URL}
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - MINIO_EXTERNAL_URL=${MINIO_EXTERNAL_URL}
+      - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME}
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=https://auth.voicemessenger.mywire.org/realms/voice-messenger
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://keycloak:9090/realms/voice-messenger/protocol/openid-connect/certs
     networks:

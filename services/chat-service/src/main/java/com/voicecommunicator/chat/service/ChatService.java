@@ -38,13 +38,11 @@ public class ChatService {
         try {
             Map<String, Object> payload = Map.of(
                     "messageId", savedMessage.getId(),
-                    "content", savedMessage.getContent()
-            );
+                    "content", savedMessage.getContent());
 
             rabbitTemplate.convertAndSend("text.analyze", payload);
             log.info("Send message {} to analyse (AI)", savedMessage.getId());
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("Could not send message {} to analyze", savedMessage.getId());
         }
 
@@ -64,12 +62,12 @@ public class ChatService {
                     message.setToxic(true);
                     messageRepository.save(message);
 
-                    String destination = "/topic/server." + message.getServerId() + ".channel." + message.getChannelId();
+                    String destination = "/topic/server." + message.getServerId() + ".channel."
+                            + message.getChannelId();
                     messagingTemplate.convertAndSend(destination, message);
                 });
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("Could not analyze message");
         }
     }

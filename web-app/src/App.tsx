@@ -1,5 +1,8 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useAuth } from 'react-oidc-context';
+import { UserSettingsModal } from './components/UserSettingsModal';
+import { UserProfileModal } from './components/UserProfileModal';
+import { UserBar } from './components/UserBar';
 import { LiveKitRoom } from '@livekit/components-react';
 import '@livekit/components-styles';
 import { api } from './api/client';
@@ -36,7 +39,7 @@ export default function App() {
     const [servers, setServers] = useState<Server[]>([]);
     const [messages, setMessages] = useState<Message[]>([]);
     const [members, setMembers] = useState<MemberDTO[]>([]);
-    const [currentUser] = useState<User | null>(null);
+    const [currentUser, setCurrentUser] = useState<User | null>(null);
     const { toasts, showToast, removeToast } = useToast();
     const { unreadCounts, fetchUnreadCounts, incrementUnreadCount, markAsRead } = useUnreadMessages(currentUserId);
 
@@ -61,6 +64,14 @@ export default function App() {
     const [inputVal, setInputVal] = useState("");
     const [messageInput, setMessageInput] = useState("");
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [showSettingsModal, setShowSettingsModal] = useState(false);
+    const [viewedUser, setViewedUser] = useState<User | null>(null);
+
+    const handleViewProfile = (user: User) => {
+        // Ensure we have at least partial data. If we have an ID but missing other fields, 
+        // the modal might show placeholders which is fine.
+        setViewedUser(user);
+    };
 
     // --- CHANNEL MANAGEMENT ---
     const [showAddChannel, setShowAddChannel] = useState(false);
@@ -328,6 +339,32 @@ export default function App() {
             if (data.channelId) {
                 incrementUnreadCount(data.channelId);
             }
+        },
+        onUserUpdated: (data) => {
+            console.log('[App] User updated:', data);
+
+            // Update members list
+            setMembers(prev => prev.map(m => {
+                if (m.userId === data.userId) {
+                    return { ...m, displayName: data.displayName, avatarUrl: data.avatarUrl };
+                }
+                return m;
+            }));
+
+
+
+            // Update current user if it's me
+            // Note: We check against auth.user.profile.sub as currentUser might not be updated yet? 
+            // Actually currentUser is state, so it's fine.
+            setCurrentUser(prev => {
+                if (prev && prev.id === data.userId) {
+                    return { ...prev, displayName: data.displayName, avatarUrl: data.avatarUrl };
+                }
+                return prev;
+            });
+
+            // Trigger refetch of friends / DMs lists
+            setFriendNotificationTrigger(prev => prev + 1);
         }
     });
 
@@ -336,8 +373,9 @@ export default function App() {
     useEffect(() => {
         if (auth.isAuthenticated) {
             api.syncUser()
-                .then(() => {
-                    console.log('[AppUser] Sync completed');
+                .then((user) => {
+                    console.log('[AppUser] Sync completed', user);
+                    setCurrentUser((prev) => user || prev);
                 })
                 .catch(err => console.error('[AppUser] Sync failed:', err));
             loadServers();
@@ -347,7 +385,9 @@ export default function App() {
 
     // Helper for voice connection
     const connectToVoiceChannel = (channelId: string) => {
-        api.getLiveKitToken(channelId)
+        const displayName = currentUser?.displayName || auth.user?.profile.preferred_username || "User";
+        console.log('[App] Connecting to voice channel:', channelId, 'as:', displayName);
+        api.getLiveKitToken(channelId, displayName)
             .then(data => {
                 setLiveKitToken(data.token);
                 setLiveKitUrl(data.serverUrl);
@@ -356,25 +396,59 @@ export default function App() {
             .catch(err => console.error("Błąd LiveKit:", err));
     };
 
+    // ... (lines 389-688 skipped)
+
+    {/* Servers */ }
+    {
+        servers.map(server => (
+            <div
+                key={server.id}
+                className={`server-icon ${viewMode === 'servers' && selectedServerId === server.id ? 'active' : ''}`}
+                onClick={() => {
+                    setViewMode('servers');
+                    setSelectedServerId(server.id);
+                    selectDefaultChannels(server);
+                }}
+                title={server.name}
+            >
+                {(server.name || "?").substring(0, 1).toUpperCase()}
+            </div>
+        ))
+    }
+
     // 2. Obsługa zmiany kanału (Tekst vs Głos)
     useEffect(() => {
-        if (!selectedChannel || !selectedServerId) return;
+        if (!selectedChannel || !selectedServerId) {
+            setIsVoiceActive(false);
+            setLiveKitToken("");
+            return;
+        }
 
-        // Reset wiadomości tylko jeśli zmienia się kanał CZATU
-        // (Logika przeniesiona niżej do useEffect zależnego od chatChannelId)
+        let isMounted = true;
 
         // Obsługa LiveKit (tylko dla kanałów głosowych)
         if (selectedChannel.type === 'VOICE') {
-            // Jeśli kanał głosowy jest wybrany, ale nie jesteśmy połączeni (bo np. użytkownik się rozłączył),
-            // to useEffect NIE powinien automatycznie łączyć PONOWNIE przy każdym renderze, 
-            // ale przy ZMIANIE kanału (selectedChannelId changes) - tak.
-            // W tym układzie dependencies [selectedChannelId] załatwiają sprawę.
-            connectToVoiceChannel(selectedChannel.id);
+            api.getLiveKitToken(selectedChannel.id)
+                .then(data => {
+                    if (isMounted) {
+                        setLiveKitToken(data.token);
+                        setLiveKitUrl(data.serverUrl);
+                        setIsVoiceActive(true);
+                    }
+                })
+                .catch(err => {
+                    if (isMounted) console.error("Błąd LiveKit:", err);
+                });
         } else {
+            // Jeśli to nie kanał głosowy, a byliśmy w trybie głosowym - wyłączamy
             setIsVoiceActive(false);
             setLiveKitToken("");
         }
-    }, [selectedChannelId, selectedServerId]);
+
+        return () => {
+            isMounted = false;
+        };
+    }, [selectedChannelId, selectedServerId, selectedChannel]);
 
     // 2a. Pobieranie wiadomości przy zmianie chatChannelId
     useEffect(() => {
@@ -782,25 +856,23 @@ export default function App() {
 
 
 
-                    <div className="user-bar">
-                        <div className="user-avatar-container">
-                            {auth.user?.profile.picture ? (
-                                <img src={auth.user.profile.picture} alt="Avatar" className="user-avatar-img" />
-                            ) : (
-                                <div className="user-avatar-placeholder" />
-                            )}
-                            <div className="status-indicator online" />
-                        </div>
-                        <div className="user-info">
-                            <div className="username">{auth.user?.profile.preferred_username}</div>
-                            <div className="status-text">Online</div>
-                        </div>
-                    </div>
+                    <UserBar
+                        currentUser={currentUser}
+                        onOpenSettings={() => setShowSettingsModal(true)}
+                    />
                 </div>
             ) : (
                 !['friends', 'dms', 'analytics'].includes(viewMode) && (
-                    <div className="channel-sidebar placeholder">
-                        <p>Wybierz serwer</p>
+                    <div className="channel-sidebar placeholder" style={{ display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <p>Wybierz serwer</p>
+                        </div>
+                        <div style={{ width: '100%' }}>
+                            <UserBar
+                                currentUser={currentUser}
+                                onOpenSettings={() => setShowSettingsModal(true)}
+                            />
+                        </div>
                     </div>
                 )
             )}
@@ -813,6 +885,9 @@ export default function App() {
                     onStartDM={handleStartDM}
                     onStartCall={handleStartCall}
                     notificationTrigger={friendNotificationTrigger}
+                    currentUser={currentUser}
+                    onOpenSettings={() => setShowSettingsModal(true)}
+                    onUserClick={handleViewProfile}
                 />
             )}
 
@@ -828,6 +903,10 @@ export default function App() {
                     }}
                     unreadCounts={unreadCounts}
                     fetchUnreadCounts={fetchUnreadCounts}
+                    currentUser={currentUser}
+                    onOpenSettings={() => setShowSettingsModal(true)}
+                    notificationTrigger={friendNotificationTrigger}
+                    onUserClick={handleViewProfile}
                 />
             )}
 
@@ -839,9 +918,12 @@ export default function App() {
 
             <main className="chat-area" style={{ display: viewMode === 'servers' ? 'flex' : 'none' }}>
                 {!selectedServerId ? (
-                    <div className="welcome">
-                        <h2>Witaj w Voice Messenger 👋</h2>
-                        <p>Wybierz serwer z lewej strony lub stwórz nowy.</p>
+                    <div className="welcome" style={{ position: 'relative' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                            <h2>Witaj w Voice Messenger 👋</h2>
+                            <p>Wybierz serwer z lewej strony lub stwórz nowy.</p>
+                        </div>
+
                     </div>
                 ) : selectedChannel?.type === 'VOICE' && !isVoiceActive ? (
                     <div className="welcome">
@@ -901,11 +983,51 @@ export default function App() {
                                     const revealed = revealedToxicIds.has(msg.id);
                                     return (
                                         <div key={msg.id} className={`message-item ${toxic ? 'message-toxic' : ''}`}>
-                                            <div className="message-avatar" />
+                                            <div
+                                                className="message-avatar"
+                                                style={{ cursor: 'pointer' }}
+                                                onClick={() => {
+                                                    const sender = members.find(m => m.userId === msg.senderId);
+                                                    handleViewProfile({
+                                                        id: msg.senderId,
+                                                        username: msg.senderUsername || msg.senderId,
+                                                        displayName: sender?.displayName || msg.senderDisplayName,
+                                                        avatarUrl: sender?.avatarUrl
+                                                    });
+                                                }}
+                                            >
+                                                {(() => {
+                                                    const sender = members.find(m => m.userId === msg.senderId);
+                                                    const avatarUrl = sender?.avatarUrl;
+                                                    return avatarUrl ? (
+                                                        <img src={avatarUrl} alt={msg.senderUsername} className="user-avatar-img" />
+                                                    ) : (
+                                                        <div className="user-avatar-placeholder">
+                                                            {(sender?.displayName || msg.senderUsername || "?").substring(0, 1).toUpperCase()}
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </div>
                                             <div className="message-content">
                                                 <div className="message-header">
-                                                    <span className="author">
-                                                        {msg.senderUsername || (msg.senderId.length > 20 ? msg.senderId.substring(0, 8) + '...' : msg.senderId)}
+                                                    <span
+                                                        className="author"
+                                                        style={{ cursor: 'pointer' }}
+                                                        onClick={() => {
+                                                            const sender = members.find(m => m.userId === msg.senderId);
+                                                            handleViewProfile({
+                                                                id: msg.senderId,
+                                                                username: msg.senderUsername || msg.senderId,
+                                                                displayName: sender?.displayName || msg.senderDisplayName,
+                                                                avatarUrl: sender?.avatarUrl
+                                                            });
+                                                        }}
+                                                    >
+                                                        {(() => {
+                                                            const member = members.find(m => m.userId === msg.senderId);
+                                                            const isMe = currentUser?.id === msg.senderId;
+                                                            return member?.displayName || (isMe ? currentUser?.displayName : null) || msg.senderUsername || (msg.senderId.length > 20 ? msg.senderId.substring(0, 8) + '...' : msg.senderId);
+                                                        })()}
                                                     </span>
                                                     <span className="time">{new Date(msg.timestamp).toLocaleTimeString()}</span>
                                                     {toxic && <span className="toxic-badge"><AlertTriangle size={14} /> Potencjalnie wulgarna</span>}
@@ -959,14 +1081,60 @@ export default function App() {
                                 const revealed = revealedToxicIds.has(msg.id);
                                 return (
                                     <div key={msg.id} className={`message-item ${toxic ? 'message-toxic' : ''}`}>
-                                        <div className="message-avatar" />
+                                        <div
+                                            className="message-avatar"
+                                            style={{ cursor: 'pointer' }}
+                                            onClick={() => {
+                                                const sender = members.find(m => m.userId === msg.senderId);
+                                                const isMe = currentUser?.id === msg.senderId;
+                                                console.log('Clicked user:', msg.senderId, 'Found member:', sender, 'Is Me:', isMe);
+
+                                                handleViewProfile({
+                                                    id: msg.senderId,
+                                                    username: msg.senderUsername || msg.senderId,
+                                                    displayName: sender?.displayName || (isMe ? currentUser?.displayName : null) || msg.senderDisplayName,
+                                                    avatarUrl: sender?.avatarUrl || (isMe ? currentUser?.avatarUrl : undefined)
+                                                });
+                                            }}
+                                        >
+                                            {(() => {
+                                                const sender = members.find(m => m.userId === msg.senderId);
+                                                const avatarUrl = sender?.avatarUrl;
+                                                return avatarUrl ? (
+                                                    <img src={avatarUrl} alt={msg.senderUsername} className="user-avatar-img" />
+                                                ) : (
+                                                    <div className="user-avatar-placeholder">
+                                                        {(msg.senderUsername || "?").substring(0, 1).toUpperCase()}
+                                                    </div>
+                                                );
+                                            })()}
+                                        </div>
                                         <div className="message-content">
                                             <div className="message-header">
-                                                <span className="author">
-                                                    {msg.senderUsername || (msg.senderId.length > 20 ? msg.senderId.substring(0, 8) + '...' : msg.senderId)}
+                                                <span
+                                                    className="author"
+                                                    style={{ cursor: 'pointer' }}
+                                                    onClick={() => {
+                                                        const sender = members.find(m => m.userId === msg.senderId);
+                                                        const isMe = currentUser?.id === msg.senderId;
+                                                        console.log('Clicked author:', msg.senderId, 'Found member:', sender, 'Is Me:', isMe);
+
+                                                        handleViewProfile({
+                                                            id: msg.senderId,
+                                                            username: msg.senderUsername || msg.senderId,
+                                                            displayName: sender?.displayName || (isMe ? currentUser?.displayName : null) || msg.senderDisplayName,
+                                                            avatarUrl: sender?.avatarUrl || (isMe ? currentUser?.avatarUrl : undefined)
+                                                        });
+                                                    }}
+                                                >
+                                                    {(() => {
+                                                        const sender = members.find(m => m.userId === msg.senderId);
+                                                        const isMe = currentUser?.id === msg.senderId;
+                                                        return sender?.displayName || (isMe ? currentUser?.displayName : null) || msg.senderUsername || (msg.senderId.length > 20 ? msg.senderId.substring(0, 8) + '...' : msg.senderId);
+                                                    })()}
                                                 </span>
-                                                <span className="time">{new Date(msg.timestamp).toLocaleTimeString()}</span>
                                                 {toxic && <span className="toxic-badge"><AlertTriangle size={14} /> Potencjalnie wulgarna</span>}
+                                                <span className="time">{new Date(msg.timestamp).toLocaleTimeString()}</span>
                                             </div>
                                             {toxic && !revealed ? (
                                                 <div className="toxic-hidden-content">
@@ -1003,17 +1171,36 @@ export default function App() {
                             </div>
                         </form>
                     </div>
-                )}
-            </main>
+                )
+                }
+            </main >
 
             {selectedServer && !isVoiceActive && viewMode === 'servers' && (
                 <aside className="members-sidebar">
                     <h3>CZŁONKOWIE — {members.length}</h3>
                     {members.map((m, i) => (
-                        <div key={i} className="member-item">
-                            <div className="message-avatar small" />
+                        <div
+                            key={i}
+                            className="member-item"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => handleViewProfile({
+                                id: m.userId,
+                                username: m.username,
+                                displayName: m.displayName,
+                                avatarUrl: m.avatarUrl
+                            })}
+                        >
+                            <div className="message-avatar small">
+                                {m.avatarUrl ? (
+                                    <img src={m.avatarUrl} alt={m.username} className="user-avatar-img" />
+                                ) : (
+                                    <div className="user-avatar-placeholder small">
+                                        {(m.displayName || m.username || "?").substring(0, 2).toUpperCase()}
+                                    </div>
+                                )}
+                            </div>
                             <div className="member-info">
-                                <span className="member-name">{m.username}</span>
+                                <span className="member-name">{m.displayName || m.username}</span>
                                 <span className={`member-role-badge ${m.role === 'OWNER' ? 'role-owner' : 'role-member'}`}>
                                     {m.role === 'OWNER' ? 'Właściciel' : 'Członek'}
                                 </span>
@@ -1032,42 +1219,44 @@ export default function App() {
                 </aside>
             )}
 
-            {showModal && (
-                <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false) }}>
-                    <div className="modal-content">
-                        <div className="modal-tabs">
-                            <button
-                                className={modalMode === 'CREATE' ? 'active' : ''}
-                                onClick={() => setModalMode('CREATE')}
-                            >
-                                Stwórz Serwer
-                            </button>
-                            <button
-                                className={modalMode === 'JOIN' ? 'active' : ''}
-                                onClick={() => setModalMode('JOIN')}
-                            >
-                                Dołącz do Serwera
-                            </button>
-                        </div>
+            {
+                showModal && (
+                    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false) }}>
+                        <div className="modal-content">
+                            <div className="modal-tabs">
+                                <button
+                                    className={modalMode === 'CREATE' ? 'active' : ''}
+                                    onClick={() => setModalMode('CREATE')}
+                                >
+                                    Stwórz Serwer
+                                </button>
+                                <button
+                                    className={modalMode === 'JOIN' ? 'active' : ''}
+                                    onClick={() => setModalMode('JOIN')}
+                                >
+                                    Dołącz do Serwera
+                                </button>
+                            </div>
 
-                        <form onSubmit={handleModalSubmit}>
-                            <label>
-                                {modalMode === 'CREATE' ? 'NAZWA SERWERA' : 'ID SERWERA (ZAPROSZENIE)'}
-                            </label>
-                            <input
-                                className="input-field"
-                                value={inputVal}
-                                onChange={(e) => setInputVal(e.target.value)}
-                                autoFocus
-                                placeholder={modalMode === 'CREATE' ? 'Np. Gaming Room' : 'Wklej ID tutaj...'}
-                            />
-                            <button type="submit" className="btn btn-primary w-full" style={{ marginTop: 20 }}>
-                                {modalMode === 'CREATE' ? 'Utwórz' : 'Dołącz'}
-                            </button>
-                        </form>
+                            <form onSubmit={handleModalSubmit}>
+                                <label>
+                                    {modalMode === 'CREATE' ? 'NAZWA SERWERA' : 'ID SERWERA (ZAPROSZENIE)'}
+                                </label>
+                                <input
+                                    className="input-field"
+                                    value={inputVal}
+                                    onChange={(e) => setInputVal(e.target.value)}
+                                    autoFocus
+                                    placeholder={modalMode === 'CREATE' ? 'Np. Gaming Room' : 'Wklej ID tutaj...'}
+                                />
+                                <button type="submit" className="btn btn-primary w-full" style={{ marginTop: 20 }}>
+                                    {modalMode === 'CREATE' ? 'Utwórz' : 'Dołącz'}
+                                </button>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Voice Call Modal */}
             <VoiceCallModal
@@ -1087,119 +1276,153 @@ export default function App() {
                 onEnd={webrtcCall.endCall}
             />
 
-            {showLogoutConfirm && (
-                <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowLogoutConfirm(false); }}>
-                    <div className="logout-modal">
-                        <div className="logout-modal-icon">
-                            <LogOut size={32} />
-                        </div>
-                        <h2>Wylogować się?</h2>
-                        <p>Czy na pewno chcesz się wylogować z Voice Messenger?</p>
-                        <div className="logout-modal-actions">
-                            <button className="btn logout-modal-cancel" onClick={() => setShowLogoutConfirm(false)}>
-                                Anuluj
-                            </button>
-                            <button className="btn logout-modal-confirm" onClick={handleLogout}>
-                                Wyloguj
-                            </button>
+            {
+                showLogoutConfirm && (
+                    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowLogoutConfirm(false); }}>
+                        <div className="logout-modal">
+                            <div className="logout-modal-icon">
+                                <LogOut size={32} />
+                            </div>
+                            <h2>Wylogować się?</h2>
+                            <p>Czy na pewno chcesz się wylogować z Voice Messenger?</p>
+                            <div className="logout-modal-actions">
+                                <button className="btn logout-modal-cancel" onClick={() => setShowLogoutConfirm(false)}>
+                                    Anuluj
+                                </button>
+                                <button className="btn logout-modal-confirm" onClick={handleLogout}>
+                                    Wyloguj
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
-            {kickTarget && (
-                <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setKickTarget(null); }}>
-                    <div className="logout-modal">
-                        <div className="logout-modal-icon" style={{ background: 'rgba(237, 66, 69, 0.12)' }}>
-                            <UserX size={32} />
-                        </div>
-                        <h2>Wyrzucić użytkownika?</h2>
-                        <p>Czy na pewno chcesz wyrzucić <strong>{kickTarget.username}</strong> z serwera?</p>
-                        <div className="logout-modal-actions">
-                            <button className="btn logout-modal-cancel" onClick={() => setKickTarget(null)}>
-                                Anuluj
-                            </button>
-                            <button className="btn logout-modal-confirm" onClick={handleKickMember}>
-                                Wyrzuć
-                            </button>
+            {
+                kickTarget && (
+                    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setKickTarget(null); }}>
+                        <div className="logout-modal">
+                            <div className="logout-modal-icon" style={{ background: 'rgba(237, 66, 69, 0.12)' }}>
+                                <UserX size={32} />
+                            </div>
+                            <h2>Wyrzucić użytkownika?</h2>
+                            <p>Czy na pewno chcesz wyrzucić <strong>{kickTarget.username}</strong> z serwera?</p>
+                            <div className="logout-modal-actions">
+                                <button className="btn logout-modal-cancel" onClick={() => setKickTarget(null)}>
+                                    Anuluj
+                                </button>
+                                <button className="btn logout-modal-confirm" onClick={handleKickMember}>
+                                    Wyrzuć
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
-            {showLeaveConfirm && (
-                <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowLeaveConfirm(false); }}>
-                    <div className="logout-modal">
-                        <div className="logout-modal-icon" style={{ background: 'rgba(237, 66, 69, 0.12)' }}>
-                            <DoorOpen size={32} />
-                        </div>
-                        <h2>Opuścić serwer?</h2>
-                        <p>Czy na pewno chcesz opuścić serwer <strong>{selectedServer?.name}</strong>?</p>
-                        <div className="logout-modal-actions">
-                            <button className="btn logout-modal-cancel" onClick={() => setShowLeaveConfirm(false)}>
-                                Anuluj
-                            </button>
-                            <button className="btn logout-modal-confirm" onClick={handleLeaveServer}>
-                                Opuść
-                            </button>
+            {
+                showLeaveConfirm && (
+                    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowLeaveConfirm(false); }}>
+                        <div className="logout-modal">
+                            <div className="logout-modal-icon" style={{ background: 'rgba(237, 66, 69, 0.12)' }}>
+                                <DoorOpen size={32} />
+                            </div>
+                            <h2>Opuścić serwer?</h2>
+                            <p>Czy na pewno chcesz opuścić serwer <strong>{selectedServer?.name}</strong>?</p>
+                            <div className="logout-modal-actions">
+                                <button className="btn logout-modal-cancel" onClick={() => setShowLeaveConfirm(false)}>
+                                    Anuluj
+                                </button>
+                                <button className="btn logout-modal-confirm" onClick={handleLeaveServer}>
+                                    Opuść
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
-            {showDeleteConfirm && (
-                <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) { setShowDeleteConfirm(false); setDeleteConfirmInput(''); } }}>
-                    <div className="logout-modal">
-                        <div className="logout-modal-icon" style={{ background: 'rgba(237, 66, 69, 0.12)' }}>
-                            <Trash2 size={32} />
-                        </div>
-                        <h2>Usunąć serwer?</h2>
-                        <p>Tej operacji <strong>nie można cofnąć</strong>. Wszystkie kanały i wiadomości zostaną usunięte.</p>
-                        <p className="delete-confirm-hint">Wpisz <strong>{selectedServer?.name}</strong> aby potwierdzić:</p>
-                        <input
-                            className="input-field delete-confirm-input"
-                            value={deleteConfirmInput}
-                            onChange={(e) => setDeleteConfirmInput(e.target.value)}
-                            placeholder={selectedServer?.name}
-                            autoFocus
-                        />
-                        <div className="logout-modal-actions">
-                            <button className="btn logout-modal-cancel" onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmInput(''); }}>
-                                Anuluj
-                            </button>
-                            <button
-                                className="btn logout-modal-confirm"
-                                onClick={handleDeleteServer}
-                                disabled={deleteConfirmInput !== selectedServer?.name}
-                            >
-                                Usuń
-                            </button>
+            {
+                showDeleteConfirm && (
+                    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) { setShowDeleteConfirm(false); setDeleteConfirmInput(''); } }}>
+                        <div className="logout-modal">
+                            <div className="logout-modal-icon" style={{ background: 'rgba(237, 66, 69, 0.12)' }}>
+                                <Trash2 size={32} />
+                            </div>
+                            <h2>Usunąć serwer?</h2>
+                            <p>Tej operacji <strong>nie można cofnąć</strong>. Wszystkie kanały i wiadomości zostaną usunięte.</p>
+                            <p className="delete-confirm-hint">Wpisz <strong>{selectedServer?.name}</strong> aby potwierdzić:</p>
+                            <input
+                                className="input-field delete-confirm-input"
+                                value={deleteConfirmInput}
+                                onChange={(e) => setDeleteConfirmInput(e.target.value)}
+                                placeholder={selectedServer?.name}
+                                autoFocus
+                            />
+                            <div className="logout-modal-actions">
+                                <button className="btn logout-modal-cancel" onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmInput(''); }}>
+                                    Anuluj
+                                </button>
+                                <button
+                                    className="btn logout-modal-confirm"
+                                    onClick={handleDeleteServer}
+                                    disabled={deleteConfirmInput !== selectedServer?.name}
+                                >
+                                    Usuń
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
-            {channelToDelete && (
-                <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setChannelToDelete(null); }}>
-                    <div className="logout-modal">
-                        <div className="logout-modal-icon" style={{ background: 'rgba(237, 66, 69, 0.12)' }}>
-                            <Trash2 size={32} />
-                        </div>
-                        <h2>Usunąć kanał?</h2>
-                        <p>Czy na pewno chcesz usunąć kanał <strong>#{channelToDelete.name}</strong>? Tej operacji nie można cofnąć.</p>
-                        <div className="logout-modal-actions">
-                            <button className="btn logout-modal-cancel" onClick={() => setChannelToDelete(null)}>
-                                Anuluj
-                            </button>
-                            <button className="btn logout-modal-confirm" onClick={handleRemoveChannel}>
-                                Usuń
-                            </button>
+            {
+                channelToDelete && (
+                    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setChannelToDelete(null); }}>
+                        <div className="logout-modal">
+                            <div className="logout-modal-icon" style={{ background: 'rgba(237, 66, 69, 0.12)' }}>
+                                <Trash2 size={32} />
+                            </div>
+                            <h2>Usunąć kanał?</h2>
+                            <p>Czy na pewno chcesz usunąć kanał <strong>#{channelToDelete.name}</strong>? Tej operacji nie można cofnąć.</p>
+                            <div className="logout-modal-actions">
+                                <button className="btn logout-modal-cancel" onClick={() => setChannelToDelete(null)}>
+                                    Anuluj
+                                </button>
+                                <button className="btn logout-modal-confirm" onClick={handleRemoveChannel}>
+                                    Usuń
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
             <ToastContainer toasts={toasts} onRemove={removeToast} />
 
-        </div>
+            {
+                showSettingsModal && currentUser && (
+                    <UserSettingsModal
+                        currentUser={currentUser}
+                        onClose={() => setShowSettingsModal(false)}
+                        onUpdate={(updatedUser) => {
+                            setCurrentUser(prev => ({ ...prev, ...updatedUser }));
+                            setShowSettingsModal(false);
+                            showToast('Profil zaktualizowany', 'success');
+                        }}
+                        onShowToast={showToast}
+                    />
+                )
+            }
+
+            {
+                viewedUser && (
+                    <UserProfileModal
+                        user={viewedUser}
+                        onClose={() => setViewedUser(null)}
+                    />
+                )
+            }
+
+        </div >
     );
 }

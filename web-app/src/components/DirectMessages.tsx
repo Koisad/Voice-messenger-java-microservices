@@ -3,6 +3,7 @@ import { api } from '../api/client';
 import type { Friendship, Message } from '../types';
 import { /* Phone, */ ArrowLeft, Send, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { useChatSocket } from '../hooks/useChatSocket';
+import { UserBar } from './UserBar';
 import './DirectMessages.css';
 
 interface DirectMessagesProps {
@@ -14,6 +15,10 @@ interface DirectMessagesProps {
     onChannelSelect?: (channelId: string | null) => void;
     unreadCounts?: Record<string, number>;
     fetchUnreadCounts?: (channelIds: string[], ignoreChannelId?: string) => Promise<void>;
+    notificationTrigger?: number;
+    currentUser: any;
+    onOpenSettings: () => void;
+    onUserClick: (user: any) => void;
 }
 
 export const DirectMessages: React.FC<DirectMessagesProps> = ({
@@ -24,8 +29,27 @@ export const DirectMessages: React.FC<DirectMessagesProps> = ({
     onBack,
     onChannelSelect,
     unreadCounts = {},
-    fetchUnreadCounts
+    fetchUnreadCounts,
+    currentUser,
+    onOpenSettings,
+    notificationTrigger,
+    onUserClick
 }) => {
+    // ... (rest of imports/state)
+
+    // Reload when notification trigger changes
+    useEffect(() => {
+        if (notificationTrigger !== undefined && notificationTrigger > 0) {
+            loadFriends();
+        }
+    }, [notificationTrigger]);
+
+    // ... (rest of code)
+
+    // Update avatar rendering in the list (around line 225 usually)
+    // I need to find the specific block for avatar rendering in DirectMessages to replace it.
+    // Since I don't have the full file content in view, I'll stick to adding the prop and useEffect first.
+    // refined avatar logic will be done in a separate step after locating it.
     // Extend Friendship with channelId
     type FriendWithChannel = Friendship & { channelId?: string };
     const [friends, setFriends] = useState<FriendWithChannel[]>([]);
@@ -79,8 +103,7 @@ export const DirectMessages: React.FC<DirectMessagesProps> = ({
             // Map friend IDs to channel IDs in parallel
             const friendsWithChannels = await Promise.all(validFriends.map(async (f) => {
                 try {
-                    const friendId = f.requesterId === currentUserId ? f.addresseeId : f.requesterId;
-                    const { channelId } = await api.getDMChannel(friendId);
+                    const { channelId } = await api.getDMChannel(f.friendId);
                     return { ...f, channelId };
                 } catch (e) {
                     return f;
@@ -101,25 +124,18 @@ export const DirectMessages: React.FC<DirectMessagesProps> = ({
     };
 
     const selectFriend = async (friendship: FriendWithChannel) => {
-        const friendId = friendship.requesterId === currentUserId
-            ? friendship.addresseeId
-            : friendship.requesterId;
-        const friendUsername = friendship.requesterId === currentUserId
-            ? friendship.addresseeUsername
-            : friendship.requesterUsername;
-
         try {
             // Use cached channelId if available, otherwise fetch
             let channelId = friendship.channelId;
             if (!channelId) {
-                const res = await api.getDMChannel(friendId);
+                const res = await api.getDMChannel(friendship.friendId);
                 channelId = res.channelId;
                 // Update state to cache it
                 setFriends(prev => prev.map(f => f.id === friendship.id ? { ...f, channelId } : f));
             }
 
             if (channelId) {
-                setSelectedFriend({ id: friendId, username: friendUsername, channelId });
+                setSelectedFriend({ id: friendship.friendId, username: friendship.friendUsername, channelId });
                 if (onChannelSelect) onChannelSelect(channelId);
             }
         } catch (err) {
@@ -167,14 +183,12 @@ export const DirectMessages: React.FC<DirectMessagesProps> = ({
         );
     }, [messages, socketMessages]);
 
-    const getFriendInfo = (friendship: Friendship) => {
-        if (friendship.requesterId === currentUserId) {
-            return { id: friendship.addresseeId, username: friendship.addresseeUsername };
-        }
-        return { id: friendship.requesterId, username: friendship.requesterUsername };
-    };
+    // Helper removed as Friendship DTO now has flattened friend info
+    // const getFriendInfo = ...
 
     if (selectedFriend) {
+        const friendInfo = friends.find(f => f.friendId === selectedFriend.id);
+
         return (
             <div className="dm-container">
                 <header className="dm-header">
@@ -184,7 +198,30 @@ export const DirectMessages: React.FC<DirectMessagesProps> = ({
                     }}>
                         <ArrowLeft size={20} />
                     </button>
-                    <h3>{selectedFriend.username}</h3>
+                    <div
+                        className="dm-friend-info"
+                        style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', flex: 1 }}
+                        onClick={() => {
+                            // If we have friend info, use it. If not, use selectedFriend (partial)
+                            onUserClick({
+                                id: selectedFriend.id,
+                                username: selectedFriend.username,
+                                displayName: friendInfo?.friendDisplayName,
+                                avatarUrl: friendInfo?.friendAvatarUrl
+                            });
+                        }}
+                    >
+                        <div className="message-avatar" style={{ width: '32px', height: '32px' }}>
+                            {friendInfo?.friendAvatarUrl ? (
+                                <img src={friendInfo.friendAvatarUrl} alt={selectedFriend.username} className="user-avatar-img" />
+                            ) : (
+                                <div className="user-avatar-placeholder" style={{ fontSize: '14px' }}>
+                                    {(friendInfo?.friendDisplayName || selectedFriend.username || "?").substring(0, 1).toUpperCase()}
+                                </div>
+                            )}
+                        </div>
+                        <h3 style={{ margin: 0 }}>{friendInfo?.friendDisplayName || selectedFriend.username}</h3>
+                    </div>
                     <div className="dm-actions">
                         {/* Call button disabled until WebRTC is ready */}
                         {/* <button
@@ -203,14 +240,64 @@ export const DirectMessages: React.FC<DirectMessagesProps> = ({
                         const revealed = revealedToxicIds.has(msg.id);
                         return (
                             <div key={msg.id} className={`message-item ${toxic ? 'message-toxic' : ''}`}>
-                                <div className="message-avatar" />
+                                <div
+                                    className="message-avatar"
+                                    style={{ cursor: 'pointer' }}
+                                    onClick={() => {
+                                        const friendInfo = friends.find(f => f.friendId === msg.senderId);
+                                        const isMe = currentUser?.id === msg.senderId;
+                                        // Fix: Use friendDisplayName if available, else fallback
+                                        const displayName = isMe ? currentUser?.displayName : (friendInfo?.friendDisplayName || msg.senderUsername);
+
+                                        onUserClick({
+                                            id: msg.senderId,
+                                            username: msg.senderUsername || msg.senderId,
+                                            displayName: displayName || msg.senderUsername, // Ensure we pass something
+                                            avatarUrl: isMe ? currentUser?.avatarUrl : friendInfo?.friendAvatarUrl
+                                        });
+                                    }}
+                                >
+                                    {(() => {
+                                        // Let's try to find friend info from 'friends' array
+                                        const friendInfo = friends.find(f => f.friendId === msg.senderId);
+                                        const isMe = currentUser?.id === msg.senderId;
+                                        const url = isMe ? currentUser?.avatarUrl : friendInfo?.friendAvatarUrl;
+
+                                        return url ? (
+                                            <img src={url} alt={msg.senderUsername} className="user-avatar-img" />
+                                        ) : (
+                                            <div className="user-avatar-placeholder">
+                                                {(friendInfo?.friendDisplayName || msg.senderUsername || "?").substring(0, 1).toUpperCase()}
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
                                 <div className="message-content">
                                     <div className="message-header">
-                                        <span className="author">
-                                            {msg.senderUsername || (msg.senderId.length > 20 ? msg.senderId.substring(0, 8) + '...' : msg.senderId)}
+                                        <span
+                                            className="author"
+                                            style={{ cursor: 'pointer' }}
+                                            onClick={() => {
+                                                const friendInfo = friends.find(f => f.friendId === msg.senderId);
+                                                const isMe = currentUser?.id === msg.senderId;
+                                                const displayName = isMe ? currentUser?.displayName : (friendInfo?.friendDisplayName || msg.senderUsername);
+
+                                                onUserClick({
+                                                    id: msg.senderId,
+                                                    username: msg.senderUsername || msg.senderId,
+                                                    displayName: displayName || msg.senderUsername,
+                                                    avatarUrl: isMe ? currentUser?.avatarUrl : friendInfo?.friendAvatarUrl
+                                                });
+                                            }}
+                                        >
+                                            {(() => {
+                                                const friendInfo = friends.find(f => f.friendId === msg.senderId);
+                                                const isMe = currentUser?.id === msg.senderId;
+                                                return isMe ? (currentUser?.displayName || currentUser?.username || msg.senderUsername) : (friendInfo?.friendDisplayName || msg.senderUsername || (msg.senderId.length > 20 ? msg.senderId.substring(0, 8) + '...' : msg.senderId));
+                                            })()}
                                         </span>
-                                        <span className="time">{new Date(msg.timestamp).toLocaleTimeString()}</span>
                                         {toxic && <span className="toxic-badge"><AlertTriangle size={14} /> Potencjalnie wulgarna</span>}
+                                        <span className="time">{new Date(msg.timestamp).toLocaleTimeString()}</span>
                                     </div>
                                     {toxic && !revealed ? (
                                         <div className="toxic-hidden-content">
@@ -262,41 +349,52 @@ export const DirectMessages: React.FC<DirectMessagesProps> = ({
                 <h2>Wiadomości Prywatne</h2>
             </header>
 
-            <div className="dm-list">
-                {friends.length === 0 ? (
-                    <div className="empty-state">
-                        <p>Brak znajomych do rozmowy</p>
-                        <p className="hint">Dodaj znajomych, aby rozpocząć konwersację</p>
-                    </div>
-                ) : (
-                    friends.map(friendship => {
-                        const friend = getFriendInfo(friendship);
-                        return (
+            <div className="dm-list" style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ flex: 1, overflowY: 'auto' }}>
+                    {friends.length === 0 ? (
+                        <div className="empty-state">
+                            <p>Brak znajomych do rozmowy</p>
+                            <p className="hint">Dodaj znajomych, aby rozpocząć konwersację</p>
+                        </div>
+                    ) : (
+                        friends.map(friendship => (
                             <div
                                 key={friendship.id}
                                 className="dm-item"
                                 onClick={() => selectFriend(friendship)}
                             >
-                                <div className="message-avatar" />
+                                <div className="message-avatar">
+                                    {friendship.friendAvatarUrl ? (
+                                        <img src={friendship.friendAvatarUrl} alt={friendship.friendUsername} className="user-avatar-img" />
+                                    ) : (
+                                        <div className="user-avatar-placeholder">
+                                            {(friendship.friendUsername || "?").substring(0, 2).toUpperCase()}
+                                        </div>
+                                    )}
+                                </div>
                                 <div className="dm-info">
                                     <span className="dm-friend-name" style={{
                                         fontWeight: (friendship.channelId && unreadCounts[friendship.channelId]) ? 'bold' : 'normal'
                                     }}>
-                                        {friend.username}
+                                        {friendship.friendDisplayName || friendship.friendUsername}
                                     </span>
                                     {friendship.channelId && unreadCounts[friendship.channelId] ? (
                                         <span className="unread-badge">
                                             {unreadCounts[friendship.channelId] > 99 ? '99+' : unreadCounts[friendship.channelId]}
                                         </span>
                                     ) : (
-                                        <span className="dm-hint">Kliknij, aby otworzyć czat</span>
+                                        <div className="dm-status-text">
+                                            {friendship.friendUsername}
+                                        </div>
                                     )}
                                 </div>
                             </div>
-                        );
-                    })
-                )}
+                        ))
+                    )}
+                </div>
             </div>
-        </div>
+
+            <UserBar currentUser={currentUser} onOpenSettings={onOpenSettings} />
+        </div >
     );
 };

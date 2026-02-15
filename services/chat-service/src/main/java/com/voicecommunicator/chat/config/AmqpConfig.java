@@ -21,7 +21,6 @@ public class AmqpConfig {
         return new Queue("text.result", true);
     }
 
-
     @Bean
     public Queue cleanupQueue() {
         return new Queue("chat.server-cleanup", true);
@@ -38,6 +37,19 @@ public class AmqpConfig {
                 .bind(cleanupQueue)
                 .to(internalExchange)
                 .with("server.deleted");
+    }
+
+    @Bean
+    public Queue userSyncQueue() {
+        return new Queue("chat.user-sync", true);
+    }
+
+    @Bean
+    public Binding userSyncBinding(Queue userSyncQueue, TopicExchange internalExchange) {
+        return BindingBuilder
+                .bind(userSyncQueue)
+                .to(internalExchange)
+                .with("user.updated");
     }
 
     @Bean

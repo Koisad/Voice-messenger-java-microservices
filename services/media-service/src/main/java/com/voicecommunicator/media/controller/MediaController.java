@@ -24,7 +24,11 @@ public class MediaController {
         String username = jwt.getClaimAsString("preferred_username");
         String channelId = request.getChannelId();
 
-        String token = liveKitService.generateToken(userId, username, channelId);
+        String nameToUse = (request.getDisplayName() != null && !request.getDisplayName().isEmpty())
+                ? request.getDisplayName()
+                : username;
+
+        String token = liveKitService.generateToken(userId, nameToUse, channelId);
 
         String url = liveKitService.getLiveKitUrl();
 
