@@ -234,6 +234,8 @@ services:
       - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
       - MINIO_EXTERNAL_URL=${MINIO_EXTERNAL_URL}
       - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME}
+      - KEYCLOAK_ADMIN_CLIENT_ID=${KEYCLOAK_ADMIN_CLIENT_ID}
+      - KEYCLOAK_ADMIN_CLIENT_SECRET=${KEYCLOAK_ADMIN_CLIENT_SECRET}
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=https://auth.voicemessenger.mywire.org/realms/voice-messenger
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://keycloak:9090/realms/voice-messenger/protocol/openid-connect/certs
     networks:
