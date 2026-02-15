@@ -1,0 +1,215 @@
+/* Copied and adapted from LoginPage.css for consistency */
+
+.register-page {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    background: linear-gradient(135deg, #1a1b2e 0%, #16213e 40%, #0f3460 100%);
+    z-index: 9999;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.register-page::before {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at 30% 50%, rgba(88, 101, 242, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 70% 30%, rgba(35, 165, 89, 0.06) 0%, transparent 40%);
+    animation: registerBgPulse 15s ease-in-out infinite alternate;
+    pointer-events: none;
+}
+
+@keyframes registerBgPulse {
+    0% {
+        transform: translate(0, 0) scale(1);
+    }
+
+    100% {
+        transform: translate(-2%, 2%) scale(1.05);
+    }
+}
+
+.register-container {
+    position: relative;
+    background: rgba(43, 45, 49, 0.85);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 40px 40px;
+    width: 420px;
+    margin: auto;
+    max-width: 90vw;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(255, 255, 255, 0.04);
+    text-align: center;
+}
+
+.register-glow {
+    position: absolute;
+    top: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #5865F2, #23a559, transparent);
+    border-radius: 2px;
+    opacity: 0.8;
+}
+
+.register-header {
+    margin-bottom: 24px;
+}
+
+.register-logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #5865F2, #4752c4);
+    color: white;
+    margin-bottom: 16px;
+    box-shadow: 0 8px 32px rgba(88, 101, 242, 0.3);
+}
+
+.register-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #f2f3f5;
+    margin: 0 0 8px;
+    letter-spacing: -0.5px;
+}
+
+.register-subtitle {
+    color: #949ba4;
+    font-size: 14px;
+    margin: 0;
+}
+
+/* --- Register Form --- */
+.register-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    text-align: left;
+}
+
+.register-field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: #b5bac1;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.register-field input {
+    width: 100%;
+    padding: 10px 14px;
+    background: #1e1f22;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    color: #f2f3f5;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+
+.register-field input:focus {
+    border-color: #5865F2;
+}
+
+.register-error {
+    background: rgba(237, 66, 69, 0.12);
+    border: 1px solid rgba(237, 66, 69, 0.3);
+    color: #f38688;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    text-align: center;
+}
+
+/* --- Buttons --- */
+.register-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.register-btn:active {
+    transform: scale(0.98);
+}
+
+.register-btn-primary {
+    background: linear-gradient(135deg, #5865F2, #4752c4);
+    color: white;
+    margin-top: 4px;
+    box-shadow: 0 4px 16px rgba(88, 101, 242, 0.3);
+}
+
+.register-btn-primary:hover {
+    background: linear-gradient(135deg, #6875f5, #5865F2);
+    box-shadow: 0 6px 24px rgba(88, 101, 242, 0.4);
+}
+
+.register-btn-secondary {
+    background: transparent;
+    color: #949ba4;
+    font-weight: 500;
+}
+
+.register-btn-secondary:hover {
+    color: #dcddde;
+    text-decoration: underline;
+}
+
+/* Divider */
+.register-divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 20px 0;
+}
+
+.register-divider::before,
+.register-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.register-divider span {
+    color: #6d6f78;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.register-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.register-field input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

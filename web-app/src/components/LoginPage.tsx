@@ -17,7 +17,7 @@ function decodeJwtPayload(token: string): any {
     return JSON.parse(atob(base64));
 }
 
-export const LoginPage: React.FC = () => {
+export const LoginPage: React.FC<{ onRegisterClick: () => void }> = ({ onRegisterClick }) => {
     const auth = useAuth();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -175,6 +175,14 @@ export const LoginPage: React.FC = () => {
                 <p className="login-footer">
                     Logując się, akceptujesz warunki użytkowania
                 </p>
+
+                <div className="login-divider">
+                    <span>Nie masz konta?</span>
+                </div>
+
+                <button className="login-btn login-btn-secondary" onClick={onRegisterClick}>
+                    Zarejestruj się
+                </button>
             </div>
         </div>
     );

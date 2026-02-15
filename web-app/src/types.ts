@@ -36,6 +36,12 @@ export interface CreateServerRequest {
     name: string;
 }
 
+export interface RegisterRequestDTO {
+    username: string;
+    email: string;
+    password: string;
+}
+
 export interface SendMessageRequest {
     serverId: string;
     channelId: string;

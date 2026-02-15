@@ -1,4 +1,4 @@
-import type { Server, Message, CreateServerRequest, SendMessageRequest, LiveKitTokenResponse, MemberDTO, Friendship, NetworkMetric, User } from '../types';
+import type { Server, Message, CreateServerRequest, SendMessageRequest, LiveKitTokenResponse, MemberDTO, Friendship, NetworkMetric, User, RegisterRequestDTO } from '../types';
 import { getUserToken } from './config';
 
 const BASE_URL = '/api';
@@ -12,6 +12,19 @@ const getHeaders = () => {
 };
 
 export const api = {
+    // Auth
+    register: async (data: RegisterRequestDTO): Promise<void> => {
+        const res = await fetch(`${BASE_URL}/auth/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (!res.ok) {
+            const error = await res.json().catch(() => ({}));
+            throw new Error(error.message || 'Registration failed');
+        }
+    },
+
     // Serwery
     getServers: async (): Promise<Server[]> => {
         const res = await fetch(`${BASE_URL}/servers`, { headers: getHeaders() });

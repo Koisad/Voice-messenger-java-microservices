@@ -17,6 +17,7 @@ import { Friends } from './components/Friends';
 import { DirectMessages } from './components/DirectMessages';
 import { VoiceCallModal } from './components/VoiceCallModal';
 import { LoginPage } from './components/LoginPage';
+import { RegisterPage } from './components/RegisterPage';
 import { ToastContainer } from './components/ToastContainer';
 import { useToast } from './hooks/useToast';
 import { AnalyticsDashboard } from './components/AnalyticsDashboard';
@@ -567,15 +568,18 @@ export default function App() {
         }
     };
 
-    if (auth.isLoading) return (
-        <div className="center-screen">
-            <div className="loading-spinner"></div>
-        </div>
-    );
+    const [showRegister, setShowRegister] = useState(false);
+
+    if (auth.isLoading) {
+        return <div className="loading-screen">Ładowanie...</div>;
+    }
     if (auth.error) return <div className="center-screen">Błąd logowania: {auth.error.message}</div>;
 
     if (!auth.isAuthenticated) {
-        return <LoginPage />;
+        if (showRegister) {
+            return <RegisterPage onSwitchToLogin={() => setShowRegister(false)} />;
+        }
+        return <LoginPage onRegisterClick={() => setShowRegister(true)} />;
     }
 
     const handleLogout = async () => {
