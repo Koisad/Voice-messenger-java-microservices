@@ -20,7 +20,14 @@ export const api = {
             body: JSON.stringify(data)
         });
         if (!res.ok) {
-            const error = await res.json().catch(() => ({}));
+            const errorText = await res.text();
+            console.error('Registration failed:', res.status, errorText);
+            let error;
+            try {
+                error = JSON.parse(errorText);
+            } catch {
+                error = { message: `Błąd serwera: ${res.status}` };
+            }
             throw new Error(error.message || 'Registration failed');
         }
     },
