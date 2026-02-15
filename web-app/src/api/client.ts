@@ -26,8 +26,26 @@ export const api = {
             try {
                 error = JSON.parse(errorText);
             } catch {
-                error = { message: `Błąd serwera: ${res.status}` };
+                // If parsing fails, use status codes
             }
+
+            if (!error || !error.message) {
+                if (res.status === 409) {
+                    error = { message: 'Użytkownik o takiej nazwie lub emailu już istnieje' };
+                } else if (res.status === 401) {
+                    error = { message: 'Brak uprawnień do rejestracji (401)' };
+                } else {
+                    error = { message: `Błąd serwera: ${res.status}` };
+                }
+            } else if (res.status === 409) {
+                // Overwrite backend message if it's generic, or use it if specific
+                // Spring default 'message' might be "User with this username..."
+                // let's translate common English messages to Polish if needed
+                if (error.message.includes('already exists')) {
+                    error.message = 'Użytkownik o takiej nazwie lub emailu już istnieje';
+                }
+            }
+
             throw new Error(error.message || 'Registration failed');
         }
     },

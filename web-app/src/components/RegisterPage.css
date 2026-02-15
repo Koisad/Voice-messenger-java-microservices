@@ -169,6 +169,7 @@
     box-shadow: 0 6px 24px rgba(88, 101, 242, 0.4);
 }
 
+/* SECONDARY BUTTON (Similar to Login Page's register button) */
 .register-btn-secondary {
     background: transparent;
     color: #949ba4;
