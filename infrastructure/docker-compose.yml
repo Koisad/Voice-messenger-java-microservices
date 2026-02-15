@@ -138,11 +138,14 @@ services:
       - --lt-cred-mech
       - --fingerprint
       - --no-cli
+      - --no-tls
+      - --no-dtls
       - --listening-ip=0.0.0.0
       - --relay-ip=3.71.11.3
       - --external-ip=3.71.11.3
     networks:
       - voice-network
+
 
 
 volumes:
