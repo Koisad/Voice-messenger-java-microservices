@@ -24,8 +24,6 @@ spring:
             issuer-uri: http://keycloak:9090/realms/voice-messenger
   cloud:
     gateway:
-      default-filters:
-        - TokenRelay
       routes:
         - id: signaling-route
           uri: ${SIGNALING_URI}

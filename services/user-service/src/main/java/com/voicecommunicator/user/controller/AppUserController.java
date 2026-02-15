@@ -51,4 +51,10 @@ public class AppUserController {
 
         return ResponseEntity.ok(dtos);
     }
+
+    @GetMapping("/{userId}")
+    public ResponseEntity<UserResponseDTO> getUserById(@PathVariable String userId) {
+        AppUser user = appUserService.getUserById(userId);
+        return ResponseEntity.ok(UserResponseDTO.fromEntity(user));
+    }
 }

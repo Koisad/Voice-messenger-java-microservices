@@ -12,5 +12,4 @@ public class SignalMessage {
     private String sender;
     private String target;
     private Object data; // WebRTC data
-    private String senderUsername;
 }

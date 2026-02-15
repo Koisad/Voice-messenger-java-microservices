@@ -10,7 +10,7 @@ interface FriendsProps {
     currentUserId: string;
     currentUsername: string;
     onStartDM: (friendId: string, friendUsername: string) => void;
-    onStartCall?: (friendId: string, friendUsername: string) => void;
+    onStartCall?: (friendId: string, friendUsername: string, friendUser?: any) => void;
     notificationTrigger?: number;
     currentUser: User | null;
     onOpenSettings: () => void;
@@ -259,7 +259,14 @@ export const Friends: React.FC<FriendsProps> = ({ currentUserId, onStartDM, onSt
                                         {onStartCall && (
                                             <button
                                                 className="btn-icon"
-                                                onClick={() => onStartCall(friendship.friendId, friendship.friendUsername)}
+                                                onClick={() => {
+                                                    onStartCall(friendship.friendId, friendship.friendUsername, {
+                                                        id: friendship.friendId,
+                                                        username: friendship.friendUsername,
+                                                        displayName: friendship.friendDisplayName,
+                                                        avatarUrl: friendship.friendAvatarUrl
+                                                    });
+                                                }}
                                                 title="Zadzwoń"
                                             >
                                                 <Phone size={20} />

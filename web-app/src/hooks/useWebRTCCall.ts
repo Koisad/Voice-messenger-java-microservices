@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useSignaling } from './useSignaling';
+import type { User } from '../types';
 
 interface UseWebRTCCallProps {
     userToken?: string;
@@ -11,61 +12,97 @@ export type CallStatus = 'idle' | 'calling' | 'ringing' | 'connected' | 'ended';
 
 export const useWebRTCCall = ({ userToken, currentUserId, currentUsername }: UseWebRTCCallProps) => {
     const [callStatus, setCallStatus] = useState<CallStatus>('idle');
-    const [remotePeer, setRemotePeer] = useState<{ id: string; username: string } | null>(null);
+    const [remotePeer, setRemotePeer] = useState<{ id: string; username: string; user?: User } | null>(null);
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
     const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
     const pcRef = useRef<RTCPeerConnection | null>(null);
+    const [iceServers, setIceServers] = useState<RTCIceServer[]>([
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+    ]);
 
-    const onIncomingCall = useCallback(async (from: string, fromUsername: string, offer: RTCSessionDescriptionInit) => {
+    useEffect(() => {
+        // Fetch TURN/STUN servers from backend
+        const fetchIceServers = async () => {
+            if (!userToken) return;
+            try {
+                // We need to import api here or assume it's available via closure/import
+                // Importing api at top of file
+                const servers = await import('../api/client').then(m => m.api.getIceServers());
+                if (servers && servers.length > 0) {
+                    console.log('[WebRTC] Using fetched ICE servers:', servers);
+                    setIceServers(servers);
+                }
+            } catch (err) {
+                console.warn('[WebRTC] Failed to fetch ICE servers, using defaults', err);
+            }
+        };
+        fetchIceServers();
+    }, [userToken]);
+
+    // We need to fix the dependency regarding iceServers. 
+    // Let's use a Ref for iceServers to access it inside callbacks without re-creating them.
+    const iceServersRef = useRef<RTCIceServer[]>(iceServers);
+    useEffect(() => {
+        iceServersRef.current = iceServers;
+    }, [iceServers]);
+
+    // Redefine onIncomingCall to use ref
+    const onIncomingCall = useCallback(async (from: string, fromUsername: string, offer: RTCSessionDescriptionInit, fromUser: User) => {
         console.log('[WebRTC] onIncomingCall triggered! From:', from, 'Username:', fromUsername);
         try {
-            setRemotePeer({ id: from, username: fromUsername });
+            setRemotePeer({ id: from, username: fromUsername, user: fromUser });
             setCallStatus('ringing');
             console.log('[WebRTC] Call status set to ringing');
 
-            // Store offer to accept later
-            pcRef.current = createPeerConnection(from);
+            pcRef.current = createPeerConnection(from, iceServersRef.current);
             await pcRef.current.setRemoteDescription(new RTCSessionDescription(offer));
             console.log('[WebRTC] Remote description set');
         } catch (error) {
             console.error('[WebRTC] Error in onIncomingCall:', error);
-            endCall();
+            cleanupCall();
         }
     }, []);
 
     const onCallAnswered = useCallback(async (answer: RTCSessionDescriptionInit) => {
         if (pcRef.current) {
-            await pcRef.current.setRemoteDescription(new RTCSessionDescription(answer));
-            setCallStatus('connected');
+            try {
+                await pcRef.current.setRemoteDescription(new RTCSessionDescription(answer));
+                setCallStatus('connected');
+            } catch (err) {
+                console.error('[WebRTC] Error setting remote description (answer):', err);
+            }
         }
     }, []);
 
     const onIceCandidate = useCallback(async (candidate: RTCIceCandidateInit) => {
         if (pcRef.current) {
-            await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+            try {
+                await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+            } catch (err) {
+                console.error('[WebRTC] Error adding ice candidate:', err);
+            }
         }
     }, []);
 
     const onCallEnded = useCallback(() => {
-        endCall();
+        console.log('[WebRTC] Call ended by remote');
+        cleanupCall();
     }, []);
 
     const { connected, sendSignal } = useSignaling({
         userToken,
         currentUserId,
         currentUsername,
-        onIncomingCall,
+        onIncomingCall: onIncomingCall,
         onCallAnswered,
         onIceCandidate,
         onCallEnded
     });
 
-    const createPeerConnection = (targetUserId: string) => {
+    const createPeerConnection = (targetUserId: string, servers: RTCIceServer[]) => {
         const pc = new RTCPeerConnection({
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' }
-            ]
+            iceServers: servers
         });
 
         pc.onicecandidate = (event) => {
@@ -87,33 +124,32 @@ export const useWebRTCCall = ({ userToken, currentUserId, currentUsername }: Use
             console.log('[WebRTC] Connection state:', pc.connectionState);
             if (pc.connectionState === 'connected') {
                 setCallStatus('connected');
-            } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
-                endCall();
+            } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+                if (pc.connectionState === 'failed') {
+                    cleanupCall();
+                }
             }
         };
 
         return pc;
     };
 
-    const startCall = async (targetUserId: string, targetUsername: string) => {
+    const startCall = async (targetUserId: string, targetUsername: string, targetUser?: User) => {
         try {
-            setRemotePeer({ id: targetUserId, username: targetUsername });
+            setRemotePeer({ id: targetUserId, username: targetUsername, user: targetUser });
             setCallStatus('calling');
 
-            // Get user media
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
             setLocalStream(stream);
 
-            // Create peer connection
-            const pc = createPeerConnection(targetUserId);
+            // Use current iceServers from state or ref
+            const pc = createPeerConnection(targetUserId, iceServersRef.current);
             pcRef.current = pc;
 
-            // Add audio track
             stream.getTracks().forEach(track => {
                 pc.addTrack(track, stream);
             });
 
-            // Create and send offer
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
 
@@ -128,7 +164,7 @@ export const useWebRTCCall = ({ userToken, currentUserId, currentUsername }: Use
             }
         } catch (err) {
             console.error('[WebRTC] Failed to start call:', err);
-            endCall();
+            cleanupCall();
         }
     };
 
@@ -136,16 +172,13 @@ export const useWebRTCCall = ({ userToken, currentUserId, currentUsername }: Use
         if (!pcRef.current || !remotePeer) return;
 
         try {
-            // Get user media
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
             setLocalStream(stream);
 
-            // Add audio track
             stream.getTracks().forEach(track => {
                 pcRef.current!.addTrack(track, stream);
             });
 
-            // Create and send answer
             const answer = await pcRef.current.createAnswer();
             await pcRef.current.setLocalDescription(answer);
 
@@ -158,28 +191,31 @@ export const useWebRTCCall = ({ userToken, currentUserId, currentUsername }: Use
             setCallStatus('connected');
         } catch (err) {
             console.error('[WebRTC] Failed to answer call:', err);
-            endCall();
+            cleanupCall();
         }
     };
 
     const rejectCall = () => {
         if (remotePeer) {
             sendSignal({
-                type: 'call-ended',
+                type: 'hangup',
                 target: remotePeer.id
             });
         }
-        endCall();
+        cleanupCall();
     };
 
     const endCall = () => {
         if (remotePeer) {
             sendSignal({
-                type: 'call-ended',
+                type: 'hangup',
                 target: remotePeer.id
             });
         }
+        cleanupCall();
+    };
 
+    const cleanupCall = () => {
         if (localStream) {
             localStream.getTracks().forEach(track => track.stop());
             setLocalStream(null);
@@ -195,7 +231,6 @@ export const useWebRTCCall = ({ userToken, currentUserId, currentUsername }: Use
         setCallStatus('idle');
     };
 
-    // Handle tab close / refresh
     const remotePeerRef = useRef(remotePeer);
     useEffect(() => {
         remotePeerRef.current = remotePeer;
@@ -205,9 +240,8 @@ export const useWebRTCCall = ({ userToken, currentUserId, currentUsername }: Use
         const handleBeforeUnload = () => {
             const peer = remotePeerRef.current;
             if (peer) {
-                // Próba wysłania przez WebSocket (może się nie udać)
                 sendSignal({
-                    type: 'call-ended',
+                    type: 'hangup',
                     target: peer.id
                 });
             }
@@ -215,7 +249,8 @@ export const useWebRTCCall = ({ userToken, currentUserId, currentUsername }: Use
 
         window.addEventListener('beforeunload', handleBeforeUnload);
         return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-    }, [sendSignal]); // Usunięto remotePeer z zależności
+    }, [sendSignal]);
+
 
     return {
         callStatus,

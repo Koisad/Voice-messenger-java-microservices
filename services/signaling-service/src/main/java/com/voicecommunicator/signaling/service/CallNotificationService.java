@@ -23,12 +23,9 @@ public class CallNotificationService {
         payload.put("roomId", roomId);
         payload.put("type", "AUDIO");
 
-        NotificationEvent event = new NotificationEvent(
-                "CALL_INCOMING",
-                payload
-        );
+        NotificationEvent event = new NotificationEvent("CALL_INCOMING", payload);
 
-        messagingTemplate.convertAndSend("/topic/user." + receiverId, event);
-        log.info("Call notification send to {}", receiverId);
+        messagingTemplate.convertAndSendToUser(receiverId, "/queue/notifications", event);
+        log.info("Call notification sent to {}", receiverId);
     }
 }

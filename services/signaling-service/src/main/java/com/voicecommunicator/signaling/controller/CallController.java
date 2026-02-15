@@ -1,5 +1,6 @@
 package com.voicecommunicator.signaling.controller;
 
+import com.voicecommunicator.signaling.service.UserServiceClient;
 import com.voicecommunicator.signaling.service.CallNotificationService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -14,18 +15,19 @@ import org.springframework.web.bind.annotation.*;
 public class CallController {
 
     private final CallNotificationService notificationService;
+    private final UserServiceClient userServiceClient;
 
     @PostMapping("/initiate")
     public ResponseEntity<Void> initiateCall(@AuthenticationPrincipal Jwt jwt, @RequestBody CallRequest request) {
         String callerId = jwt.getSubject();
-        String callerName = jwt.getClaimAsString("name");
+        String token = jwt.getTokenValue();
 
-        notificationService.notifyIncomingCall(
-                callerId,
-                callerName != null ? callerName : "Unknown",
-                request.getReceiverId(),
-                request.getRoomId()
-        );
+        String callerName = userServiceClient.getUserDisplayName(callerId, token);
+
+        if (callerName == null) callerName = jwt.getClaimAsString("preferred_username");
+        if (callerName == null) callerName = "Unknown";
+
+        notificationService.notifyIncomingCall(callerId, callerName, request.getReceiverId(), request.getRoomId());
         return ResponseEntity.ok().build();
     }
 

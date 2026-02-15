@@ -92,7 +92,7 @@ export interface DMConversation {
 }
 
 // WebRTC Signaling types
-export type SignalType = 'offer' | 'answer' | 'ice-candidate' | 'call-request' | 'call-accepted' | 'call-rejected' | 'call-ended' | 'ping' | 'pong';
+export type SignalType = 'offer' | 'answer' | 'ice-candidate' | 'call-request' | 'call-accepted' | 'call-rejected' | 'call-ended' | 'ping' | 'pong' | 'hangup' | 'busy';
 
 export interface SignalMessage {
     type: SignalType;
@@ -116,4 +116,10 @@ export interface NetworkMetric {
         roomId: string;
         connectionType: string;
     };
+}
+
+export interface IceServerConfig {
+    urls: string | string[];
+    username?: string;
+    credential?: string;
 }

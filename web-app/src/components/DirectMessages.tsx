@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api/client';
 import type { Friendship, Message } from '../types';
-import { /* Phone, */ ArrowLeft, Send } from 'lucide-react';
+import { Phone, ArrowLeft, Send } from 'lucide-react';
 import { useChatSocket } from '../hooks/useChatSocket';
 import { UserBar } from './UserBar';
 import './DirectMessages.css';
@@ -11,7 +11,7 @@ interface DirectMessagesProps {
     currentUserId: string;
     currentUsername: string;
     userToken?: string;
-    onStartCall?: (friendId: string, friendUsername: string) => void;
+    onStartCall?: (friendId: string, friendUsername: string, friendUser?: any) => void;
     onBack: () => void;
     onChannelSelect?: (channelId: string | null) => void;
     unreadCounts?: Record<string, number>;
@@ -27,7 +27,7 @@ export const DirectMessages: React.FC<DirectMessagesProps> = ({
     currentUserId,
     currentUsername,
     userToken,
-    // onStartCall, // DISABLED
+    onStartCall,
     onBack,
     onChannelSelect,
     unreadCounts = {},
@@ -226,14 +226,24 @@ export const DirectMessages: React.FC<DirectMessagesProps> = ({
                         <h3 style={{ margin: 0 }}>{friendInfo?.friendDisplayName || selectedFriend.username}</h3>
                     </div>
                     <div className="dm-actions">
-                        {/* Call button disabled until WebRTC is ready */}
-                        {/* <button
+                        <button
                             className="call-btn"
-                            onClick={() => onStartCall(selectedFriend.id, selectedFriend.username)}
+                            onClick={() => {
+                                if (onStartCall && selectedFriend) {
+                                    const friendInfo = friends.find(f => f.friendId === selectedFriend.id);
+                                    const friendUser: any = {
+                                        id: selectedFriend.id,
+                                        username: selectedFriend.username,
+                                        displayName: friendInfo?.friendDisplayName,
+                                        avatarUrl: friendInfo?.friendAvatarUrl
+                                    };
+                                    onStartCall(selectedFriend.id, selectedFriend.username, friendUser);
+                                }
+                            }}
                             title="Start Call"
                         >
                             <Phone size={18} /> Call
-                        </button> */}
+                        </button>
                     </div>
                 </header>
 

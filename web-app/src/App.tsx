@@ -748,8 +748,8 @@ export default function App() {
         setViewMode('dms');
     };
 
-    const handleStartCall = (friendId: string, friendUsername: string) => {
-        webrtcCall.startCall(friendId, friendUsername);
+    const handleStartCall = (friendId: string, friendUsername: string, friendUser?: User) => {
+        webrtcCall.startCall(friendId, friendUsername, friendUser);
     };
 
     return (
@@ -972,6 +972,7 @@ export default function App() {
                     currentUsername={auth.user?.profile.preferred_username || ''}
                     userToken={auth.user?.access_token}
                     onBack={() => setViewMode('servers')}
+                    onStartCall={handleStartCall}
                     onChannelSelect={(channelId) => {
                         setActiveDMChannelId(channelId);
                         if (channelId) markAsRead(channelId);

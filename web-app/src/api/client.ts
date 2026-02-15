@@ -153,6 +153,21 @@ export const api = {
         return res.json();
     },
 
+    getIceServers: async (): Promise<RTCIceServer[]> => {
+        // Hardcoded TURN server configuration
+        // Using window.location.hostname to automatically adapt to the server's domain/IP
+        // Credentials must match your server's .env file (COTURN_USER / COTURN_PASSWORD)
+        return [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            {
+                urls: `turn:${window.location.hostname}:3478`,
+                username: 'admin',
+                credential: 'admin'
+            }
+        ];
+    },
+
     // User Management
     syncUser: async (): Promise<User> => {
         const res = await fetch(`${BASE_URL}/users/sync`, {
@@ -289,6 +304,11 @@ export const api = {
     getUserMetrics: async (userId: string): Promise<NetworkMetric[]> => {
         const res = await fetch(`${BASE_URL}/analytics/user/${userId}`, { headers: getHeaders() });
         if (!res.ok) throw new Error('Failed to fetch user metrics');
+        return res.json();
+    },
+    getUser: async (userId: string): Promise<User> => {
+        const res = await fetch(`${BASE_URL}/users/${userId}`, { headers: getHeaders() });
+        if (!res.ok) throw new Error('Failed to fetch user');
         return res.json();
     }
 };
