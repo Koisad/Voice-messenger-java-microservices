@@ -120,6 +120,33 @@ services:
     networks:
       - voice-network
 
+  coturn:
+    image: coturn/coturn
+    container_name: coturn
+    restart: always
+    ports:
+      - "3478:3478/tcp"
+      - "3478:3478/udp"
+      - "49160-49200:49160-49200/udp"
+    command:
+      - -n
+      - --log-file=stdout
+      - --min-port=49160
+      - --max-port=49200
+      - --realm=voicemessenger.mywire.org
+      - --user=admin:admin
+      - --lt-cred-mech
+      - --fingerprint
+      - --no-cli
+      - --no-tls
+      - --no-dtls
+      - --listening-ip=0.0.0.0
+      - --external-ip=3.71.11.3
+    networks:
+      - voice-network
+
+
+
 volumes:
   auth_db_data:
   chat_ai_db_data:
