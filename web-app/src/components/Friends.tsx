@@ -14,12 +14,14 @@ interface FriendsProps {
     notificationTrigger?: number;
     currentUser: User | null;
     onOpenSettings: () => void;
+    onUserClick: (user: User) => void;
 }
 
-export const Friends: React.FC<FriendsProps> = ({ currentUserId, onStartDM, onStartCall, notificationTrigger, currentUser, onOpenSettings }) => {
+export const Friends: React.FC<FriendsProps> = ({ currentUserId, onStartDM, onStartCall, notificationTrigger, currentUser, onOpenSettings, onUserClick }) => {
     const [activeTab, setActiveTab] = useState<'friends' | 'requests'>('friends');
     const [friends, setFriends] = useState<Friendship[]>([]);
     const [requests, setRequests] = useState<Friendship[]>([]);
+    const [friendToRemove, setFriendToRemove] = useState<{ friendship: Friendship, name: string } | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<FriendUser[]>([]);
     const [loading, setLoading] = useState(false);
@@ -27,9 +29,6 @@ export const Friends: React.FC<FriendsProps> = ({ currentUserId, onStartDM, onSt
 
     // Toast
     const { showToast } = useToast();
-
-    // Confirm Modal State
-    const [friendToRemove, setFriendToRemove] = useState<{ friendship: Friendship, name: string } | null>(null);
 
     useEffect(() => {
         loadFriends();
@@ -236,16 +235,26 @@ export const Friends: React.FC<FriendsProps> = ({ currentUserId, onStartDM, onSt
                         ) : (
                             friends.map(friendship => (
                                 <div key={friendship.id} className="friend-item">
-                                    <div className="message-avatar">
-                                        {friendship.friendAvatarUrl ? (
-                                            <img src={friendship.friendAvatarUrl} alt={friendship.friendUsername} className="user-avatar-img" />
-                                        ) : (
-                                            <div className="user-avatar-placeholder">
-                                                {(friendship.friendDisplayName || friendship.friendUsername || "?").substring(0, 1).toUpperCase()}
-                                            </div>
-                                        )}
+                                    <div
+                                        style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0, cursor: 'pointer' }}
+                                        onClick={() => onUserClick({
+                                            id: friendship.friendId,
+                                            username: friendship.friendUsername,
+                                            displayName: friendship.friendDisplayName,
+                                            avatarUrl: friendship.friendAvatarUrl
+                                        })}
+                                    >
+                                        <div className="message-avatar">
+                                            {friendship.friendAvatarUrl ? (
+                                                <img src={friendship.friendAvatarUrl} alt={friendship.friendUsername} className="user-avatar-img" />
+                                            ) : (
+                                                <div className="user-avatar-placeholder">
+                                                    {(friendship.friendDisplayName || friendship.friendUsername || "?").substring(0, 1).toUpperCase()}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <span className="friend-name">{friendship.friendDisplayName || friendship.friendUsername}</span>
                                     </div>
-                                    <span className="friend-name">{friendship.friendDisplayName || friendship.friendUsername}</span>
                                     <div className="friend-actions">
                                         {onStartCall && (
                                             <button

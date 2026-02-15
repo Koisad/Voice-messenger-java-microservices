@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useAuth } from 'react-oidc-context';
 import { UserSettingsModal } from './components/UserSettingsModal';
+import { UserProfileModal } from './components/UserProfileModal';
 import { UserBar } from './components/UserBar';
 import { LiveKitRoom } from '@livekit/components-react';
 import '@livekit/components-styles';
@@ -64,6 +65,13 @@ export default function App() {
     const [messageInput, setMessageInput] = useState("");
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [showSettingsModal, setShowSettingsModal] = useState(false);
+    const [viewedUser, setViewedUser] = useState<User | null>(null);
+
+    const handleViewProfile = (user: User) => {
+        // Ensure we have at least partial data. If we have an ID but missing other fields, 
+        // the modal might show placeholders which is fine.
+        setViewedUser(user);
+    };
 
     // --- CHANNEL MANAGEMENT ---
     const [showAddChannel, setShowAddChannel] = useState(false);
@@ -879,6 +887,7 @@ export default function App() {
                     notificationTrigger={friendNotificationTrigger}
                     currentUser={currentUser}
                     onOpenSettings={() => setShowSettingsModal(true)}
+                    onUserClick={handleViewProfile}
                 />
             )}
 
@@ -897,6 +906,7 @@ export default function App() {
                     currentUser={currentUser}
                     onOpenSettings={() => setShowSettingsModal(true)}
                     notificationTrigger={friendNotificationTrigger}
+                    onUserClick={handleViewProfile}
                 />
             )}
 
@@ -973,7 +983,19 @@ export default function App() {
                                     const revealed = revealedToxicIds.has(msg.id);
                                     return (
                                         <div key={msg.id} className={`message-item ${toxic ? 'message-toxic' : ''}`}>
-                                            <div className="message-avatar">
+                                            <div
+                                                className="message-avatar"
+                                                style={{ cursor: 'pointer' }}
+                                                onClick={() => {
+                                                    const sender = members.find(m => m.userId === msg.senderId);
+                                                    handleViewProfile({
+                                                        id: msg.senderId,
+                                                        username: msg.senderUsername || msg.senderId,
+                                                        displayName: sender?.displayName || msg.senderDisplayName,
+                                                        avatarUrl: sender?.avatarUrl
+                                                    });
+                                                }}
+                                            >
                                                 {(() => {
                                                     const sender = members.find(m => m.userId === msg.senderId);
                                                     const avatarUrl = sender?.avatarUrl;
@@ -988,7 +1010,19 @@ export default function App() {
                                             </div>
                                             <div className="message-content">
                                                 <div className="message-header">
-                                                    <span className="author">
+                                                    <span
+                                                        className="author"
+                                                        style={{ cursor: 'pointer' }}
+                                                        onClick={() => {
+                                                            const sender = members.find(m => m.userId === msg.senderId);
+                                                            handleViewProfile({
+                                                                id: msg.senderId,
+                                                                username: msg.senderUsername || msg.senderId,
+                                                                displayName: sender?.displayName || msg.senderDisplayName,
+                                                                avatarUrl: sender?.avatarUrl
+                                                            });
+                                                        }}
+                                                    >
                                                         {(() => {
                                                             const member = members.find(m => m.userId === msg.senderId);
                                                             const isMe = currentUser?.id === msg.senderId;
@@ -1049,7 +1083,19 @@ export default function App() {
                                 const revealed = revealedToxicIds.has(msg.id);
                                 return (
                                     <div key={msg.id} className={`message-item ${toxic ? 'message-toxic' : ''}`}>
-                                        <div className="message-avatar">
+                                        <div
+                                            className="message-avatar"
+                                            style={{ cursor: 'pointer' }}
+                                            onClick={() => {
+                                                const sender = members.find(m => m.userId === msg.senderId);
+                                                handleViewProfile({
+                                                    id: msg.senderId,
+                                                    username: msg.senderUsername || msg.senderId,
+                                                    displayName: sender?.displayName || msg.senderDisplayName,
+                                                    avatarUrl: sender?.avatarUrl
+                                                });
+                                            }}
+                                        >
                                             {(() => {
                                                 const sender = members.find(m => m.userId === msg.senderId);
                                                 const avatarUrl = sender?.avatarUrl;
@@ -1064,7 +1110,19 @@ export default function App() {
                                         </div>
                                         <div className="message-content">
                                             <div className="message-header">
-                                                <span className="author">
+                                                <span
+                                                    className="author"
+                                                    style={{ cursor: 'pointer' }}
+                                                    onClick={() => {
+                                                        const sender = members.find(m => m.userId === msg.senderId);
+                                                        handleViewProfile({
+                                                            id: msg.senderId,
+                                                            username: msg.senderUsername || msg.senderId,
+                                                            displayName: sender?.displayName || msg.senderDisplayName,
+                                                            avatarUrl: sender?.avatarUrl
+                                                        });
+                                                    }}
+                                                >
                                                     {msg.senderUsername || (msg.senderId.length > 20 ? msg.senderId.substring(0, 8) + '...' : msg.senderId)}
                                                 </span>
                                                 {toxic && <span className="toxic-badge"><AlertTriangle size={14} /> Potencjalnie wulgarna</span>}
@@ -1113,7 +1171,17 @@ export default function App() {
                 <aside className="members-sidebar">
                     <h3>CZŁONKOWIE — {members.length}</h3>
                     {members.map((m, i) => (
-                        <div key={i} className="member-item">
+                        <div
+                            key={i}
+                            className="member-item"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => handleViewProfile({
+                                id: m.userId,
+                                username: m.username,
+                                displayName: m.displayName,
+                                avatarUrl: m.avatarUrl
+                            })}
+                        >
                             <div className="message-avatar small">
                                 {m.avatarUrl ? (
                                     <img src={m.avatarUrl} alt={m.username} className="user-avatar-img" />
@@ -1334,6 +1402,15 @@ export default function App() {
                             showToast('Profil zaktualizowany', 'success');
                         }}
                         onShowToast={showToast}
+                    />
+                )
+            }
+
+            {
+                viewedUser && (
+                    <UserProfileModal
+                        user={viewedUser}
+                        onClose={() => setViewedUser(null)}
                     />
                 )
             }

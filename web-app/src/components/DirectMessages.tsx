@@ -18,6 +18,7 @@ interface DirectMessagesProps {
     notificationTrigger?: number;
     currentUser: any;
     onOpenSettings: () => void;
+    onUserClick: (user: any) => void;
 }
 
 export const DirectMessages: React.FC<DirectMessagesProps> = ({
@@ -31,7 +32,8 @@ export const DirectMessages: React.FC<DirectMessagesProps> = ({
     fetchUnreadCounts,
     currentUser,
     onOpenSettings,
-    notificationTrigger
+    notificationTrigger,
+    onUserClick
 }) => {
     // ... (rest of imports/state)
 
@@ -185,6 +187,8 @@ export const DirectMessages: React.FC<DirectMessagesProps> = ({
     // const getFriendInfo = ...
 
     if (selectedFriend) {
+        const friendInfo = friends.find(f => f.friendId === selectedFriend.id);
+
         return (
             <div className="dm-container">
                 <header className="dm-header">
@@ -194,7 +198,30 @@ export const DirectMessages: React.FC<DirectMessagesProps> = ({
                     }}>
                         <ArrowLeft size={20} />
                     </button>
-                    <h3>{selectedFriend.username}</h3>
+                    <div
+                        className="dm-friend-info"
+                        style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', flex: 1 }}
+                        onClick={() => {
+                            // If we have friend info, use it. If not, use selectedFriend (partial)
+                            onUserClick({
+                                id: selectedFriend.id,
+                                username: selectedFriend.username,
+                                displayName: friendInfo?.friendDisplayName,
+                                avatarUrl: friendInfo?.friendAvatarUrl
+                            });
+                        }}
+                    >
+                        <div className="message-avatar" style={{ width: '32px', height: '32px' }}>
+                            {friendInfo?.friendAvatarUrl ? (
+                                <img src={friendInfo.friendAvatarUrl} alt={selectedFriend.username} className="user-avatar-img" />
+                            ) : (
+                                <div className="user-avatar-placeholder" style={{ fontSize: '14px' }}>
+                                    {(friendInfo?.friendDisplayName || selectedFriend.username || "?").substring(0, 1).toUpperCase()}
+                                </div>
+                            )}
+                        </div>
+                        <h3 style={{ margin: 0 }}>{friendInfo?.friendDisplayName || selectedFriend.username}</h3>
+                    </div>
                     <div className="dm-actions">
                         {/* Call button disabled until WebRTC is ready */}
                         {/* <button
@@ -231,7 +258,16 @@ export const DirectMessages: React.FC<DirectMessagesProps> = ({
                                 </div>
                                 <div className="message-content">
                                     <div className="message-header">
-                                        <span className="author">
+                                        <span
+                                            className="author"
+                                            style={{ cursor: 'pointer' }}
+                                            onClick={() => onUserClick({
+                                                id: msg.senderId,
+                                                username: msg.senderUsername || msg.senderId,
+                                                displayName: msg.senderDisplayName,
+                                                avatarUrl: msg.senderId === currentUser.id ? currentUser.avatarUrl : (friends.find(f => f.friendId === msg.senderId)?.friendAvatarUrl)
+                                            })}
+                                        >
                                             {msg.senderUsername || (msg.senderId.length > 20 ? msg.senderId.substring(0, 8) + '...' : msg.senderId)}
                                         </span>
                                         {toxic && <span className="toxic-badge"><AlertTriangle size={14} /> Potencjalnie wulgarna</span>}
