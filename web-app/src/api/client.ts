@@ -290,5 +290,10 @@ export const api = {
         const res = await fetch(`${BASE_URL}/analytics/user/${userId}`, { headers: getHeaders() });
         if (!res.ok) throw new Error('Failed to fetch user metrics');
         return res.json();
+    },
+    getUser: async (userId: string): Promise<User> => {
+        const res = await fetch(`${BASE_URL}/users/${userId}`, { headers: getHeaders() });
+        if (!res.ok) throw new Error('Failed to fetch user');
+        return res.json();
     }
 };

@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useSignaling } from './useSignaling';
+import type { User } from '../types';
 
 interface UseWebRTCCallProps {
     userToken?: string;
@@ -11,15 +12,15 @@ export type CallStatus = 'idle' | 'calling' | 'ringing' | 'connected' | 'ended';
 
 export const useWebRTCCall = ({ userToken, currentUserId, currentUsername }: UseWebRTCCallProps) => {
     const [callStatus, setCallStatus] = useState<CallStatus>('idle');
-    const [remotePeer, setRemotePeer] = useState<{ id: string; username: string } | null>(null);
+    const [remotePeer, setRemotePeer] = useState<{ id: string; username: string; user?: User } | null>(null);
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
     const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
     const pcRef = useRef<RTCPeerConnection | null>(null);
 
-    const onIncomingCall = useCallback(async (from: string, fromUsername: string, offer: RTCSessionDescriptionInit) => {
+    const onIncomingCall = useCallback(async (from: string, fromUsername: string, offer: RTCSessionDescriptionInit, fromUser: User) => {
         console.log('[WebRTC] onIncomingCall triggered! From:', from, 'Username:', fromUsername);
         try {
-            setRemotePeer({ id: from, username: fromUsername });
+            setRemotePeer({ id: from, username: fromUsername, user: fromUser });
             setCallStatus('ringing');
             console.log('[WebRTC] Call status set to ringing');
 
@@ -35,19 +36,29 @@ export const useWebRTCCall = ({ userToken, currentUserId, currentUsername }: Use
 
     const onCallAnswered = useCallback(async (answer: RTCSessionDescriptionInit) => {
         if (pcRef.current) {
-            await pcRef.current.setRemoteDescription(new RTCSessionDescription(answer));
-            setCallStatus('connected');
+            try {
+                await pcRef.current.setRemoteDescription(new RTCSessionDescription(answer));
+                setCallStatus('connected');
+            } catch (err) {
+                console.error('[WebRTC] Error setting remote description (answer):', err);
+            }
         }
     }, []);
 
     const onIceCandidate = useCallback(async (candidate: RTCIceCandidateInit) => {
         if (pcRef.current) {
-            await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+            try {
+                await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+            } catch (err) {
+                console.error('[WebRTC] Error adding ice candidate:', err);
+            }
         }
     }, []);
 
     const onCallEnded = useCallback(() => {
-        endCall();
+        console.log('[WebRTC] Call ended by remote');
+        // IMPORTANT: Immediate cleanup on frontend when we receive signal
+        cleanupCall();
     }, []);
 
     const { connected, sendSignal } = useSignaling({
@@ -87,8 +98,11 @@ export const useWebRTCCall = ({ userToken, currentUserId, currentUsername }: Use
             console.log('[WebRTC] Connection state:', pc.connectionState);
             if (pc.connectionState === 'connected') {
                 setCallStatus('connected');
-            } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
-                endCall();
+            } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+                // Do not auto-close here if it's just a flicker, but usually for P2P 'failed' means end.
+                if (pc.connectionState === 'failed') {
+                    cleanupCall();
+                }
             }
         };
 
@@ -128,7 +142,7 @@ export const useWebRTCCall = ({ userToken, currentUserId, currentUsername }: Use
             }
         } catch (err) {
             console.error('[WebRTC] Failed to start call:', err);
-            endCall();
+            cleanupCall();
         }
     };
 
@@ -158,28 +172,33 @@ export const useWebRTCCall = ({ userToken, currentUserId, currentUsername }: Use
             setCallStatus('connected');
         } catch (err) {
             console.error('[WebRTC] Failed to answer call:', err);
-            endCall();
+            cleanupCall();
         }
     };
 
     const rejectCall = () => {
         if (remotePeer) {
+            // Send hangup signal immediately
             sendSignal({
-                type: 'call-ended',
+                type: 'hangup',
                 target: remotePeer.id
             });
         }
-        endCall();
+        cleanupCall();
     };
 
     const endCall = () => {
         if (remotePeer) {
             sendSignal({
-                type: 'call-ended',
+                type: 'hangup',
                 target: remotePeer.id
             });
         }
+        cleanupCall();
+    };
 
+    // Internal cleanup function ensuring state is reset
+    const cleanupCall = () => {
         if (localStream) {
             localStream.getTracks().forEach(track => track.stop());
             setLocalStream(null);
@@ -205,9 +224,9 @@ export const useWebRTCCall = ({ userToken, currentUserId, currentUsername }: Use
         const handleBeforeUnload = () => {
             const peer = remotePeerRef.current;
             if (peer) {
-                // Próba wysłania przez WebSocket (może się nie udać)
+                // Try to best-effort send hangup
                 sendSignal({
-                    type: 'call-ended',
+                    type: 'hangup',
                     target: peer.id
                 });
             }
@@ -215,7 +234,7 @@ export const useWebRTCCall = ({ userToken, currentUserId, currentUsername }: Use
 
         window.addEventListener('beforeunload', handleBeforeUnload);
         return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-    }, [sendSignal]); // Usunięto remotePeer z zależności
+    }, [sendSignal]);
 
     return {
         callStatus,
