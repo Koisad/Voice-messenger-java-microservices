@@ -1017,7 +1017,6 @@ export default function App() {
                     <div className="voice-chat-container">
                         <div className="voice-video-area">
                             <LiveKitRoom
-                                video={false}
                                 audio={true}
                                 token={liveKitToken}
                                 serverUrl={liveKitUrl}
