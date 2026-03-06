@@ -32,6 +32,8 @@ In this project, I was primarily responsible for the backend development and sys
 * **WebRTC Client:** LiveKit Client SDK
 * **WebSocket Client:** @stomp/stompjs
 
+> **Repository Note:** While this repository contains the complete full-stack codebase, GitHub language statistics have been intentionally configured via `.gitattributes` to highlight **Java**. This reflects my primary role as the backend developer and the core architectural focus of this project.
+
 ### Infrastructure & Data Storage
 * **Databases:** MongoDB and PostgreSQL.
 * **Cache:** Redis for real-time session management.
