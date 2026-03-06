@@ -5,4 +5,4 @@ spring:
     name: ai-service
   data:
     mongodb:
-      uri: mongodb://admin:password@3.71.11.3:8543/chat_db?authSource=admin
+      uri: mongodb://${MONGO_USER}:${MONGO_PASS}@${DB_HOST}:${MONGO_PORT}/chat_db?authSource=admin

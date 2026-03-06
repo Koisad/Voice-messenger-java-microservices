@@ -1,0 +1,304 @@
+/* ==============================
+   ANALYTICS DASHBOARD STYLES
+   ============================== */
+
+.analytics-dashboard {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-primary);
+    overflow-y: auto;
+    padding: 0;
+}
+
+/* --- HEADER --- */
+.analytics-header {
+    padding: 24px 32px 0;
+    flex-shrink: 0;
+}
+
+.analytics-header h2 {
+    margin: 0 0 4px;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.analytics-header p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+/* --- TABS --- */
+.analytics-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 16px 32px;
+    flex-shrink: 0;
+}
+
+.analytics-tab {
+    padding: 8px 20px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.analytics-tab:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-primary);
+}
+
+.analytics-tab.active {
+    background: rgba(88, 101, 242, 0.15);
+    border-color: rgba(88, 101, 242, 0.4);
+    color: #7c8aff;
+}
+
+/* --- CONTENT AREA --- */
+.analytics-content {
+    padding: 0 32px 32px;
+    flex: 1;
+    animation: analytics-fade-in 0.3s ease;
+}
+
+@keyframes analytics-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* --- KPI CARDS --- */
+.analytics-kpi-grid {
+    display: grid;
+    grid-template-columns: 160px repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.analytics-kpi-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 20px;
+    backdrop-filter: blur(12px);
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.analytics-kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 12px 12px 0 0;
+    opacity: 0.8;
+}
+
+.analytics-kpi-card:nth-child(1)::before {
+    background: linear-gradient(90deg, #5b8def, #7c6cff);
+}
+
+.analytics-kpi-card:nth-child(2)::before {
+    background: linear-gradient(90deg, #ed4245, #ff6b6b);
+}
+
+.analytics-kpi-card:nth-child(3)::before {
+    background: linear-gradient(90deg, #f0a030, #f5c842);
+}
+
+.analytics-kpi-card:nth-child(4)::before {
+    background: linear-gradient(90deg, #23a559, #43d17a);
+}
+
+.analytics-kpi-card:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.kpi-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.kpi-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+}
+
+.kpi-unit {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-left: 4px;
+}
+
+/* --- CHART CARDS --- */
+.analytics-charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.analytics-chart-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 20px;
+    transition: all 0.25s ease;
+}
+
+.analytics-chart-card:hover {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.analytics-chart-card.full-width {
+    grid-column: 1 / -1;
+}
+
+.chart-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.chart-title-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.chart-title-dot.blue {
+    background: #5b8def;
+}
+
+.chart-title-dot.red {
+    background: #ed4245;
+}
+
+.chart-title-dot.yellow {
+    background: #f0a030;
+}
+
+/* --- EMPTY STATE --- */
+.analytics-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+    text-align: center;
+    animation: analytics-fade-in 0.4s ease;
+}
+
+.analytics-empty-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(88, 101, 242, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #5b8def;
+    margin-bottom: 20px;
+}
+
+.analytics-empty h3 {
+    margin: 0 0 8px;
+    font-size: 18px;
+    color: var(--text-primary);
+}
+
+.analytics-empty p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--text-muted);
+    max-width: 360px;
+    line-height: 1.5;
+}
+
+/* --- LOADING --- */
+.analytics-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+}
+
+/* --- RESPONSIVE --- */
+@media (max-width: 1200px) {
+    .analytics-kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .analytics-charts-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* --- TOOLTIP OVERLAY STYLES --- */
+.kpi-tooltip-overlay {
+    position: fixed;
+    /* top/left set by JS inline styles */
+    width: 320px;
+    background-color: #111214;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #dbdee1;
+    z-index: 9999;
+    /* Very high to float above everything (modals, etc) */
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    pointer-events: none;
+    /* Crucial so mouse doesn't get stuck on tooltip */
+    font-weight: 400;
+    text-transform: none;
+    transform: translate(12px, 12px);
+    /* Offset slightly from cursor so it doesn't cover it */
+}
+
+.analytics-kpi-card {
+    cursor: help;
+}
+
+.info-icon {
+    color: var(--text-muted);
+    opacity: 0.5;
+    transition: opacity 0.2s;
+}
+
+.analytics-kpi-card:hover .info-icon {
+    opacity: 1;
+}

@@ -1,0 +1,157 @@
+/* 
+   CustomVideoConference.css
+   Overrides and custom styles for the LiveKit control bar to fix 
+   button sizing, grouping, and border-radius issues.
+*/
+
+/* Main Control Bar Container */
+.lk-control-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 16px;
+    width: 100%;
+    /* Ensure it floats above or sits nicely in the layout */
+}
+
+/* 
+   Button Group: Used for Split Buttons (Mic + Menu, Camera + Menu)
+   and also wrapper for Screen Share.
+   We stylize the GROUP container to provide the background and rounding.
+*/
+.lk-button-group {
+    display: flex;
+    align-items: stretch;
+    background-color: #2b2d31;
+    /* Dark/Secondary bg */
+    border-radius: 6px;
+    overflow: hidden;
+    /* Ensures children don't overflow corners */
+    height: 44px;
+    /* Fixed height to ensure uniformity */
+    border: 1px solid #1e1f22;
+}
+
+/* 
+   Target generic LiveKit buttons inside our groups.
+   We force them to fill height and remove default borders/radius
+   so the Group container handles the shape.
+*/
+.lk-button-group>.lk-button,
+.lk-button-group>button {
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    height: 100% !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px;
+    font-weight: 600;
+    color: #dbdee1;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    font-family: inherit;
+    font-size: 14px;
+}
+
+.lk-button-group>.lk-button:hover,
+.lk-button-group>button:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: white;
+}
+
+/* 
+   Menu Trigger (Arrow) 
+   This wrapper needs to align perfectly with the main button.
+*/
+.lk-button-menu-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-left: 1px solid #1e1f22;
+    /* Separator line */
+    width: 40px;
+    /* Fixed width for the arrow part, increased for better centering */
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lk-button-menu-trigger:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Ensure the button INSIDE the menu trigger also fills space */
+.lk-button-menu-trigger .lk-button,
+.lk-button-menu-trigger button {
+    width: 100%;
+    height: 100%;
+    padding: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none !important;
+    background: transparent !important;
+}
+
+/* 
+   Active State (e.g., Mic On / Screen Share On)
+   LiveKit often adds attributes or classes. 
+   We can check data-lk-attributes or aria-pressed.
+*/
+.lk-button[aria-pressed="true"],
+.lk-button[data-lk-checked="true"] {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: white;
+}
+
+/* 
+   Screen Share Specific
+   If it's in a group by itself, the group border-radius (6px) handles it.
+   So it will look like a rounded rectangle with rounded corners on BOTH sides.
+*/
+
+/* 
+   Disconnect Button (Opuść)
+   Standalone, distinct style (Red)
+*/
+.lk-disconnect-button {
+    height: 44px;
+    border-radius: 6px !important;
+    background-color: #da373c !important;
+    /* Discord-like red */
+    color: white !important;
+    font-weight: 600;
+    padding: 0 24px;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.lk-disconnect-button:hover {
+    background-color: #a1282c !important;
+}
+
+/* SVG Icon alignment */
+.lk-button svg,
+.lk-disconnect-button svg {
+    margin-right: 8px;
+    /* Space between icon and text */
+}
+
+/* If the button has no text (just icon), fix margin */
+.lk-button.icon-only svg {
+    margin-right: 0;
+}
+
+/* Fix alignment for menu trigger arrows (remove right margin) */
+.lk-button-menu-trigger .lk-button svg {
+    margin-right: 0 !important;
+}

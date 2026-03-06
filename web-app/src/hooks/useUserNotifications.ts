@@ -1,0 +1,170 @@
+import { useEffect, useRef } from 'react';
+import { Client } from '@stomp/stompjs';
+import type { StompSubscription } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
+
+interface UseUserNotificationsProps {
+    userId: string | null;
+    userToken?: string | null;
+    onFriendRequest?: (data: { senderId: string; senderName: string }) => void;
+    onFriendAccepted?: (data: { friendId: string; friendName: string }) => void;
+    onFriendRemoved?: (data: { friendId: string }) => void;
+    onIncomingCall?: (data: { callerId: string; callerName: string; roomId: string; type: string }) => void;
+    onDMReceived?: (data: { senderId: string; senderName: string; content: string; channelId: string }) => void;
+    onUserUpdated?: (data: { userId: string; username: string; displayName: string; avatarUrl: string }) => void;
+}
+
+export const useUserNotifications = ({
+    userId,
+    userToken,
+    onFriendRequest,
+    onFriendAccepted,
+    onFriendRemoved,
+    onIncomingCall,
+    onDMReceived,
+    onUserUpdated
+}: UseUserNotificationsProps) => {
+    const clientRef = useRef<Client | null>(null);
+    const subscriptionRef = useRef<StompSubscription | null>(null);
+
+    // Use refs for callbacks
+    const onFriendRequestRef = useRef(onFriendRequest);
+    const onFriendAcceptedRef = useRef(onFriendAccepted);
+    const onFriendRemovedRef = useRef(onFriendRemoved);
+    const onIncomingCallRef = useRef(onIncomingCall);
+    const onDMReceivedRef = useRef(onDMReceived);
+    const onUserUpdatedRef = useRef(onUserUpdated);
+
+    useEffect(() => {
+        onFriendRequestRef.current = onFriendRequest;
+        onFriendAcceptedRef.current = onFriendAccepted;
+        onFriendRemovedRef.current = onFriendRemoved;
+        onIncomingCallRef.current = onIncomingCall;
+        onDMReceivedRef.current = onDMReceived;
+        onUserUpdatedRef.current = onUserUpdated;
+    }, [onFriendRequest, onFriendAccepted, onFriendRemoved, onIncomingCall, onDMReceived, onUserUpdated]);
+
+    useEffect(() => {
+        // Cleanup previous connection
+        if (clientRef.current) {
+            console.log("[UserNotifications] Cleaning up previous connection...");
+            if (subscriptionRef.current) {
+                subscriptionRef.current.unsubscribe();
+                subscriptionRef.current = null;
+            }
+            clientRef.current.deactivate();
+            clientRef.current = null;
+        }
+
+        if (!userId || !userToken) {
+            return;
+        }
+
+        const client = new Client({
+            webSocketFactory: () => new SockJS(`${window.location.origin}/ws`),
+            connectHeaders: {
+                Authorization: `Bearer ${userToken}`,
+            },
+            reconnectDelay: 5000,
+            heartbeatIncoming: 4000,
+            heartbeatOutgoing: 4000,
+            debug: (str) => {
+                console.log('[UserNotifications STOMP]: ' + str);
+            },
+            onConnect: () => {
+                const topic = `/topic/user.${userId}`;
+                console.log(`[UserNotifications] Connected. Subscribing to: ${topic}`);
+
+                // Subscribe to private notifications
+                subscriptionRef.current = client.subscribe(topic, (msg) => {
+                    try {
+                        const notification = JSON.parse(msg.body);
+                        console.log('[UserNotifications] Received:', notification);
+
+                        switch (notification.type) {
+                            case 'DM_NOTIFICATION':
+                                if (onDMReceivedRef.current && notification.payload) {
+                                    onDMReceivedRef.current({
+                                        senderId: notification.payload.senderId,
+                                        senderName: notification.payload.senderUsername,
+                                        content: notification.payload.content,
+                                        channelId: notification.payload.channelId
+                                    });
+                                }
+                                break;
+                            case 'FRIEND_REQUEST':
+                                if (onFriendRequestRef.current && notification.payload) {
+                                    onFriendRequestRef.current({
+                                        senderId: notification.payload.senderId,
+                                        senderName: notification.payload.senderName
+                                    });
+                                }
+                                break;
+                            case 'FRIEND_ACCEPTED':
+                                if (onFriendAcceptedRef.current && notification.payload) {
+                                    onFriendAcceptedRef.current({
+                                        friendId: notification.payload.friendId,
+                                        friendName: notification.payload.friendName
+                                    });
+                                }
+                                break;
+                            case 'FRIEND_REMOVED':
+                                if (onFriendRemovedRef.current && notification.payload) {
+                                    onFriendRemovedRef.current({
+                                        friendId: notification.payload.friendId
+                                    });
+                                }
+                                break;
+                            case 'CALL_INCOMING':
+                                if (onIncomingCallRef.current && notification.payload) {
+                                    onIncomingCallRef.current({
+                                        callerId: notification.payload.callerId,
+                                        callerName: notification.payload.callerName,
+                                        roomId: notification.payload.roomId,
+                                        type: notification.payload.type
+                                    });
+                                }
+                                break;
+                        }
+                    } catch (error) {
+                        console.error('[UserNotifications] Failed to parse message:', error);
+                    }
+                });
+
+                // Subscribe to public user updates
+                client.subscribe('/topic/public.user-updates', (msg) => {
+                    try {
+                        const update = JSON.parse(msg.body);
+                        console.log('[UserNotifications] Received user update:', update);
+                        if (onUserUpdatedRef.current) {
+                            onUserUpdatedRef.current(update);
+                        }
+                    } catch (error) {
+                        console.error('[UserNotifications] Failed to parse user update:', error);
+                    }
+                });
+            },
+            onDisconnect: () => {
+                console.warn('[UserNotifications] Disconnected');
+            },
+            onStompError: (frame) => {
+                console.error('[UserNotifications] Error:', frame.headers['message']);
+                console.error('[UserNotifications] Details:', frame.body);
+            },
+        });
+
+        client.activate();
+        clientRef.current = client;
+
+        return () => {
+            console.log("[UserNotifications] Deactivating...");
+            if (subscriptionRef.current) {
+                subscriptionRef.current.unsubscribe();
+                subscriptionRef.current = null;
+            }
+            if (client) {
+                client.deactivate();
+            }
+        };
+    }, [userId, userToken]); // Callbacks removed from dependencies
+};
